@@ -1,0 +1,54 @@
+spring:
+  application:
+    name: rental-saas
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/rentivo
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: update # validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: ${RABBITMQ_USER}
+    password: ${RABBITMQ_PASSWORD}
+
+server:
+  port: 8080
+
+security:
+  jwt:
+    secret-key: ${JWT_SECRET_KEY}
+    expiration-time: 86400000
+    access-token-expiration: 900000       # 15 minutes
+    refresh-token-expiration: 604800000   # 7 days
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: mappings
+
+logging:
+  level:
+    org.springframework.web: DEBUG
+
+rentivo:
+  rabbitmq:
+    exchange: rentivo.exchange
+    queues:
+      register-otp: register.otp.queue
+      login-otp: login.otp.queue
+      reset-password-otp: reset.password.otp.queue
