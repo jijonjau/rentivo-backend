@@ -27,12 +27,16 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/auth/**").permitAll()
-                        .requestMatchers("/api/v1/admin/**").hasRole("SUPER_ADMIN")
-                        .requestMatchers("/api/v1/agency/**").hasRole("SUPER_ADMIN, AGENCY_ADMIN, AGENCY_USER")
-                        .requestMatchers("/api/v1/landlord/**").hasRole("SUPER_ADMIN, LANDLORD")
-                        .requestMatchers("/api/v1/tenant/**").hasRole("SUPER_ADMIN, TENANT")
-                        .anyRequest().authenticated()
+                                .requestMatchers(
+                                        "/api/v1/auth/register",
+                                        "/api/v1/auth/login",
+                                        "/api/v1/auth/reset-password"
+                                ).permitAll()
+                                .requestMatchers("/api/v1/admin/**").hasRole("SUPER_ADMIN")
+                                .requestMatchers("/api/v1/agency/**").hasAnyRole("SUPER_ADMIN", "AGENCY_ADMIN", "AGENCY_USER")
+                                .requestMatchers("/api/v1/landlord/**").hasAnyRole("SUPER_ADMIN", "LANDLORD")
+                                .requestMatchers("/api/v1/tenant/**").hasAnyRole("SUPER_ADMIN", "TENANT")
+                                .anyRequest().authenticated()
                 )
                 .addFilterBefore(
                         jwtAuthenticationFilter,

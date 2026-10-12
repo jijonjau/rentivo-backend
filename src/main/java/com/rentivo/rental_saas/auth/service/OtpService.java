@@ -7,6 +7,7 @@ import com.rentivo.rental_saas.auth.repository.OtpRepository;
 import com.rentivo.rental_saas.auth.repository.UserRepository;
 import com.rentivo.rental_saas.common.exception.InvalidOtpException;
 import com.rentivo.rental_saas.common.exception.ResourceNotFoundException;
+import com.rentivo.rental_saas.notification.services.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ public class OtpService {
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
     private final JwtService jwtService;
+    private final NotificationService notificationService;
 
     public void generateOtp(Long userId) {
         String otpValue = String.valueOf(
@@ -38,6 +40,11 @@ public class OtpService {
 
         // publish a queue
         System.out.println("OTP: " + otpValue);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        notificationService.sendOtpEmail(user.getEmail(), otpValue);
     }
 
     public AuthResponse verifyOtp(Long userId, String otp) {

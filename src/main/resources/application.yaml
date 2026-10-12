@@ -25,8 +25,24 @@ spring:
     username: ${RABBITMQ_USER}
     password: ${RABBITMQ_PASSWORD}
 
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
 server:
   port: 8080
+  shutdown: graceful
 
 security:
   jwt:
@@ -44,6 +60,7 @@ management:
 logging:
   level:
     org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
 
 rentivo:
   rabbitmq:
