@@ -44,8 +44,4 @@ public class Roles {
     private LocalDateTime createdAt;
     @UpdateTimestamp
     private LocalDateTime updatedAt;
-
-//    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-//    @JoinColumn(name = "user_profile_id", nullable = false)
-//    private UserProfile userProfile;
 }
