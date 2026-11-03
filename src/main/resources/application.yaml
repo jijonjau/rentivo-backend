@@ -90,3 +90,6 @@ rentivo:
     last-name: ${ADMIN_LAST_NAME:}
     email: ${ADMIN_EMAIL:}
     password: ${ADMIN_PASSWORD:}
+
+  cors:
+    allowed-origins: http://localhost:3000

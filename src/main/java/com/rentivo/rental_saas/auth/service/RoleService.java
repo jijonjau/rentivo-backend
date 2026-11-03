@@ -12,6 +12,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -25,21 +26,23 @@ public class RoleService {
     private final PermissionsRepo permissionsRepo;
 
     public void createRole(CreateRoleRequest request) {
-        if (roleRepo.existsByRoleName(request.roleName())) {
+        if (roleRepo.existsByRoleName(request.getRoleName())) {
             throw new ResourceAlreadyExistsException("Role already exists");
         }
         Roles role = new Roles();
-        role.setRoleName(request.roleName());
+        role.setRoleName(request.getRoleName());
         Set<Permissions> permissions = new HashSet<>(
-                permissionsRepo.findAllById(request.permissionIds())
+                permissionsRepo.findAllById(request.getPermissionIds())
         );
-        if (permissions.size() != request.permissionIds().size()) {
+        if (permissions.size() != request.getPermissionIds().size()) {
             throw new ResourceNotFoundException("One or more permissions do not exist");
         }
         role.setPermissions(permissions);
+        role.setEnabled(true);
         roleRepo.save(role);
     }
 
+    @Transactional(readOnly = true)
     public Page<FetchRoleResponse> fetchRoles(boolean enabled, Pageable pageable) {
         return roleRepo.findByEnabled(enabled, pageable)
                 .map(role -> new FetchRoleResponse(
@@ -52,6 +55,7 @@ public class RoleService {
                 ));
     }
 
+    @Transactional(readOnly = true)
     public FetchRoleResponse fetchRoleById(Long id) {
         Roles role = roleRepo.findById(id).orElseThrow(
                 () -> new ResourceNotFoundException("Role not found")
@@ -71,16 +75,16 @@ public class RoleService {
         Roles role = roleRepo.findById(id).orElseThrow(
                 () -> new ResourceNotFoundException("Role not found")
         );
-        if (!role.getRoleName().equals(request.roleName()) && roleRepo.existsByRoleName(request.roleName())) {
+        if (!role.getRoleName().equals(request.getRoleName()) && roleRepo.existsByRoleName(request.getRoleName())) {
             throw new ResourceAlreadyExistsException("Role already exists");
         }
         Set<Permissions> permissions = new HashSet<>(
-                permissionsRepo.findAllById(request.permissionIds())
+                permissionsRepo.findAllById(request.getPermissionIds())
         );
-        if (permissions.size() != request.permissionIds().size()) {
+        if (permissions.size() != request.getPermissionIds().size()) {
             throw new ResourceNotFoundException("One or more permissions do not exist");
         }
-        role.setRoleName(request.roleName());
+        role.setRoleName(request.getRoleName());
         role.setPermissions(permissions);
         roleRepo.save(role);
     }

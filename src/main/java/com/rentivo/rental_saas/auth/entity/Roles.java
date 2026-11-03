@@ -1,6 +1,5 @@
 package com.rentivo.rental_saas.auth.entity;
 
-//import com.rentivo.rental_saas.auth.common.UserProfile;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
