@@ -6,6 +6,10 @@ spring:
     url: jdbc:postgresql://localhost:5432/rentivo
     username: ${DB_USER}
     password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 4
+      connection-timeout: 30000
 
   jpa:
     hibernate:
@@ -36,13 +40,15 @@ spring:
           auth: true
           starttls:
             enable: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
 
   lifecycle:
     timeout-per-shutdown-phase: 30s
 
 server:
   port: 8080
-  shutdown: graceful
 
 security:
   jwt:
@@ -50,6 +56,8 @@ security:
     expiration-time: 86400000
     access-token-expiration: 900000       # 15 minutes
     refresh-token-expiration: 604800000   # 7 days
+    otp-token-expiration: 300000   # 5 minutes
+    password-reset-token-expiration: 300000   # 5 minutes
 
 management:
   endpoints:
@@ -69,3 +77,16 @@ rentivo:
       register-otp: register.otp.queue
       login-otp: login.otp.queue
       reset-password-otp: reset.password.otp.queue
+
+  otp:
+    expiry: 300000
+    max-attempts: 5
+    resend-cooldown: 60000
+    max-resend-attempts: 3
+    resend-window: 900000
+
+  admin:
+    first-name: ${ADMIN_FIRST_NAME:}
+    last-name: ${ADMIN_LAST_NAME:}
+    email: ${ADMIN_EMAIL:}
+    password: ${ADMIN_PASSWORD:}

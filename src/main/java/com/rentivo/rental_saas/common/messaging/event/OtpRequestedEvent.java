@@ -10,5 +10,5 @@ import lombok.NoArgsConstructor;
 public class OtpRequestedEvent {
     private Long userId;
     private String email;
-    private OtpEventType otpEventType;
+    private OtpEventType eventType;
 }

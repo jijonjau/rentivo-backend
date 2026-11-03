@@ -28,15 +28,22 @@ public class OtpEventConsumer {
 
     @RabbitListener(queues = "${rentivo.rabbitmq.queues.register-otp}")
     public void handleRegisterOtpRequest(OtpRequestedEvent event) {
-        if (event.getOtpEventType() == OtpEventType.REGISTER) {
-            otpService.generateOtp(event.getUserId());
+        if (event.getEventType() == OtpEventType.REGISTER) {
+            otpService.generateOtp(event.getUserId(), event.getEventType());
         }
     }
 
     @RabbitListener(queues = "${rentivo.rabbitmq.queues.login-otp}")
     public void handleLoginOtpRequest(OtpRequestedEvent event) {
-        if (event.getOtpEventType() == OtpEventType.LOGIN) {
-            otpService.generateOtp(event.getUserId());
+        if (event.getEventType() == OtpEventType.LOGIN) {
+            otpService.generateOtp(event.getUserId(), event.getEventType());
+        }
+    }
+
+    @RabbitListener(queues = "${rentivo.rabbitmq.queues.reset-password-otp}")
+    public void handlePasswordResetOtpRequest(OtpRequestedEvent event) {
+        if (event.getEventType() == OtpEventType.PASSWORD_RESET) {
+            otpService.generateOtp(event.getUserId(), event.getEventType());
         }
     }
 }
