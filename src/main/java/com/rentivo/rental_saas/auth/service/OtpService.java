@@ -7,6 +7,7 @@ import com.rentivo.rental_saas.auth.entity.Otps;
 import com.rentivo.rental_saas.auth.entity.Users;
 import com.rentivo.rental_saas.auth.repository.OtpRepo;
 import com.rentivo.rental_saas.auth.repository.UserRepo;
+import com.rentivo.rental_saas.auth.security.JwtService;
 import com.rentivo.rental_saas.common.exception.AccountDisabledException;
 import com.rentivo.rental_saas.common.exception.InvalidOtpException;
 import com.rentivo.rental_saas.common.exception.ResourceNotFoundException;
@@ -27,6 +28,7 @@ public class OtpService {
     private final PasswordEncoder passwordEncoder;
     private final UserRepo userRepository;
     private final JwtService jwtService;
+    private final RefreshTokenService refreshTokenService;
 //    private final NotificationService notificationService;
 
     @Value("${rentivo.otp.expiry}")
@@ -109,7 +111,8 @@ public class OtpService {
                         user.getEmail(), user.getRole().getRoleName()
                 );
 
-                String refreshToken = jwtService.generateRefreshToken(user.getEmail());
+                String refreshToken = refreshTokenService.issueRefreshToken(user);
+//                        jwtService.generateRefreshToken(user.getEmail());
 
                 response.setAccessToken(accessToken);
                 response.setRefreshToken(refreshToken);
@@ -125,7 +128,8 @@ public class OtpService {
                         user.getEmail(), user.getRole().getRoleName()
                 );
 
-                String refreshToken = jwtService.generateRefreshToken(user.getEmail());
+                String refreshToken = refreshTokenService.issueRefreshToken(user);
+//                        jwtService.generateRefreshToken(user.getEmail());
 
                 response.setAccessToken(accessToken);
                 response.setRefreshToken(refreshToken);

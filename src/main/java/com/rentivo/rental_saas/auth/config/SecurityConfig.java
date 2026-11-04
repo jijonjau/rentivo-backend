@@ -57,6 +57,9 @@ public class SecurityConfig {
         http
                 .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
+//                .csrf(csrf -> csrf
+//                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+//                )
 
                 .authorizeHttpRequests(auth -> auth
 
@@ -67,7 +70,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/v1/auth/register",
                                 "/api/v1/auth/login",
-                                "/api/v1/auth/forgot-password"
+                                "/api/v1/auth/forgot-password",
+                                "/api/v1/auth/logout"
                         ).permitAll()
 
                         // Refresh token only

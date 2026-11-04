@@ -33,4 +33,15 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleInvalidOtpException(InvalidOtpException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(HttpStatus.BAD_REQUEST.value(), ex.getMessage()));
     }
+
+    @ExceptionHandler(PasswordRecentlyUsedException.class)
+    public ResponseEntity<?> handlePasswordRecentlyUsed(
+            PasswordRecentlyUsedException ex
+    ) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(
+                        HttpStatus.BAD_REQUEST.value(),
+                        ex.getMessage()
+                ));
+    }
 }

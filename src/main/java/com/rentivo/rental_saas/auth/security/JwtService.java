@@ -1,4 +1,4 @@
-package com.rentivo.rental_saas.auth.service;
+package com.rentivo.rental_saas.auth.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtBuilder;

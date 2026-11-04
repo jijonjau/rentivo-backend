@@ -59,6 +59,10 @@ security:
     otp-token-expiration: 300000   # 5 minutes
     password-reset-token-expiration: 300000   # 5 minutes
 
+  cookie:
+    secure: ${COOKIE_SECURE:true} # local dev set to false, in prod = true
+    same-site: ${COOKIE_SAME_SITE:Lax} # if cross-site SameSite=None + appropriate CSRF protection
+
 management:
   endpoints:
     web:

@@ -10,6 +10,7 @@ import com.rentivo.rental_saas.auth.entity.Users;
 import com.rentivo.rental_saas.auth.repository.PasswordHistoryRepo;
 import com.rentivo.rental_saas.auth.repository.RolesRepo;
 import com.rentivo.rental_saas.auth.repository.UserRepo;
+import com.rentivo.rental_saas.auth.security.JwtService;
 import com.rentivo.rental_saas.common.exception.*;
 import com.rentivo.rental_saas.common.messaging.event.OtpEventType;
 import com.rentivo.rental_saas.common.messaging.event.OtpRequestedEvent;
@@ -30,6 +31,7 @@ public class AuthService {
     private final RolesRepo roleRepo;
     private final RabbitMQPublisher rabbitMQPublisher;
     private final PasswordHistoryRepo passwordHistoryRepo;
+    private final RefreshTokenService refreshTokenService;
 
     public AuthResponse login(LoginRequest loginRequest) {
 
@@ -199,6 +201,8 @@ public class AuthService {
 
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+
+        refreshTokenService.revokeAllUserTokens(userId);
     }
 
     @Transactional
@@ -217,13 +221,15 @@ public class AuthService {
 
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+
+        refreshTokenService.revokeAllUserTokens(userId);
     }
 
     // Password helper methods
     private void validatePasswordHistory(Long userId, String newPassword, String currentPasswordHash) {
 
         if (passwordEncoder.matches(newPassword, currentPasswordHash)) {
-            throw new IllegalArgumentException("You cannot reuse your recent passwords");
+            throw new PasswordRecentlyUsedException("You cannot reuse your recent passwords");
         }
 
         List<PasswordHistory> history =
@@ -235,7 +241,7 @@ public class AuthService {
                 ));
 
         if (previouslyUsed) {
-            throw new IllegalArgumentException("You cannot reuse your recent passwords");
+            throw new PasswordRecentlyUsedException("You cannot reuse your recent passwords");
         }
     }
 

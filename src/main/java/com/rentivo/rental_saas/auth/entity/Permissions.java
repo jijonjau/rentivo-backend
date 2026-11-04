@@ -1,10 +1,7 @@
 package com.rentivo.rental_saas.auth.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -13,7 +10,8 @@ import java.time.LocalDateTime;
 @Entity
 @Table(uniqueConstraints = @UniqueConstraint(columnNames = "permission_name"))
 @Builder
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class Permissions {

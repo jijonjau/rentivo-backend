@@ -2,16 +2,21 @@ package com.rentivo.rental_saas.auth.controller;
 
 import com.rentivo.rental_saas.auth.dto.*;
 import com.rentivo.rental_saas.auth.entity.Users;
+import com.rentivo.rental_saas.auth.security.CookieService;
+import com.rentivo.rental_saas.auth.security.JwtService;
 import com.rentivo.rental_saas.auth.service.AuthService;
 import com.rentivo.rental_saas.auth.service.OtpService;
+import com.rentivo.rental_saas.auth.service.RefreshTokenService;
 import com.rentivo.rental_saas.auth.service.RoleService;
 import com.rentivo.rental_saas.common.messaging.event.OtpEventType;
 import com.rentivo.rental_saas.common.response.ApiResponse;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,6 +27,9 @@ public class AuthController {
     private final AuthService authService;
     private final OtpService otpService;
     private final RoleService roleService;
+    private final CookieService cookieService;
+    private final RefreshTokenService refreshTokenService;
+    private final JwtService jwtService;
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest) {
@@ -38,7 +46,8 @@ public class AuthController {
     @PostMapping("/verify-otp")
     public ResponseEntity<?> verifyOtp(
             @Valid @RequestBody VerifyOtpRequest verifyOtpRequest,
-            Authentication authentication
+            Authentication authentication,
+            HttpServletResponse response
     ) {
         Long userId = (Long) authentication.getPrincipal();
 
@@ -50,15 +59,27 @@ public class AuthController {
                         .replace("_OTP", "")
         );
 
+        AuthResponse authResponse = otpService.verifyOtp(
+                userId,
+                verifyOtpRequest.getOtp(),
+                eventType
+        );
+
+        if (eventType == OtpEventType.REGISTER ||
+                eventType == OtpEventType.LOGIN) {
+
+            cookieService.addAuthenticationCookies(
+                    response,
+                    authResponse.getAccessToken(),
+                    authResponse.getRefreshToken()
+            );
+        }
+
         return ResponseEntity.ok(
                 ApiResponse.success(
                         200,
                         "OTP verified successfully",
-                        otpService.verifyOtp(
-                                userId,
-                                verifyOtpRequest.getOtp(),
-                                eventType
-                        )
+                        authResponse
                 )
         );
     }
@@ -104,11 +125,14 @@ public class AuthController {
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(
             @Valid @RequestBody ResetPasswordRequest request,
-            Authentication authentication
+            Authentication authentication,
+            HttpServletResponse response
     ) {
         Long userId = (Long) authentication.getPrincipal();
 
         authService.resetPassword(userId, request.getNewPassword());
+
+        cookieService.clearAuthenticationCookies(response);
 
         return ResponseEntity.ok(
                 ApiResponse.success(200, "Password reset successfully", null)
@@ -118,7 +142,8 @@ public class AuthController {
     @PostMapping("/change-password")
     public ResponseEntity<?> changePassword(
             @Valid @RequestBody ChangePasswordRequest request,
-            Authentication authentication
+            Authentication authentication,
+            HttpServletResponse response
     ) {
         Users user = (Users) authentication.getPrincipal();
 
@@ -128,8 +153,64 @@ public class AuthController {
                 request.getNewPassword()
         );
 
+        cookieService.clearAuthenticationCookies(response);
+
         return ResponseEntity.ok(
                 ApiResponse.success(200, "Password changed successfully", null)
+        );
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refreshToken(
+            @CookieValue(name = "REFRESH_TOKEN", required = false) String refreshToken,
+            HttpServletResponse response
+    ) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new BadCredentialsException("Refresh token is missing.");
+        }
+
+        RefreshTokenService.RotatedToken rotatedToken =
+                refreshTokenService.rotateRefreshToken(refreshToken);
+
+        Users user = rotatedToken.user();
+
+        String newAccessToken = jwtService.generateAccessToken(
+                user.getEmail(),
+                user.getRole().getRoleName()
+        );
+
+        cookieService.addAuthenticationCookies(
+                response,
+                newAccessToken,
+                rotatedToken.refreshToken()
+        );
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        200,
+                        "Session refreshed successfully.",
+                        null
+                )
+        );
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(
+            @CookieValue(name = "REFRESH_TOKEN", required = false) String refreshToken,
+            HttpServletResponse response
+    ) {
+        if (refreshToken != null && !refreshToken.isBlank()) {
+            refreshTokenService.revokeToken(refreshToken);
+        }
+
+        cookieService.clearAuthenticationCookies(response);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        200,
+                        "Logged out successfully.",
+                        null
+                )
         );
     }
 
