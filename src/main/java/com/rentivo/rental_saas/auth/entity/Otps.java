@@ -1,20 +1,19 @@
 package com.rentivo.rental_saas.auth.entity;
 
+import com.rentivo.rental_saas.common.messaging.event.OtpEventType;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class Otp {
+public class Otps {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -25,6 +24,9 @@ public class Otp {
     private String otpHash;
     @Column(nullable = false)
     private LocalDateTime expiresAt;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private OtpEventType eventType;
     @Column(nullable = false)
     private int attempts;
     @Column(nullable = false)
