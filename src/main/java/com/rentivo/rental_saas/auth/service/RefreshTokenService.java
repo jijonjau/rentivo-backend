@@ -3,6 +3,7 @@ package com.rentivo.rental_saas.auth.service;
 import com.rentivo.rental_saas.auth.entity.RefreshToken;
 import com.rentivo.rental_saas.auth.entity.Users;
 import com.rentivo.rental_saas.auth.repository.RefreshTokenRepo;
+import com.rentivo.rental_saas.auth.repository.UserRepo;
 import com.rentivo.rental_saas.auth.security.JwtService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ public class RefreshTokenService {
 
     private final RefreshTokenRepo refreshTokenRepo;
     private final JwtService jwtService;
+    private final UserRepo userRepo;
 
     @Value("${security.jwt.refresh-token-expiration}")
     private long refreshTokenExpiration;
@@ -76,8 +78,21 @@ public class RefreshTokenService {
             throw new BadCredentialsException("Refresh token has expired or been revoked.");
         }
 
-        Users user = existingToken.getUser();
+        String tokenEmail = jwtService.extractEmail(rawToken);
 
+        if (!tokenEmail.equals(existingToken.getUser().getEmail())) {
+            throw new BadCredentialsException("Refresh token user mismatch.");
+        }
+
+        Users user = userRepo
+                .findByIdWithRoleAndPermissions(existingToken.getUser().getId())
+                .orElseThrow(() ->
+                        new BadCredentialsException("User not found.")
+                );
+
+        if (!user.isEnabled() || !user.isVerified()) {
+            throw new BadCredentialsException("User account is unavailable.");
+        }
         // Revoke the existing token.
         existingToken.setRevoked(true);
         refreshTokenRepo.save(existingToken);

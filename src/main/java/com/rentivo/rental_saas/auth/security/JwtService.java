@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
@@ -38,8 +39,22 @@ public class JwtService {
         this.passwordResetTokenExpirationTime = passwordResetTokenExpirationTime;
     }
 
-    public String generateAccessToken(String email, String role) {
-        return generateToken(email, role, accessTokenExpirationTime, "ACCESS");
+    public String generateAccessToken(
+            String email,
+            String role,
+            Collection<String> permissions
+    ) {
+        Date now = new Date();
+
+        return Jwts.builder()
+                .subject(email)
+                .claim("type", "ACCESS")
+                .claim("role", role)
+                .claim("permissions", permissions)
+                .issuedAt(now)
+                .expiration(new Date(now.getTime() + accessTokenExpirationTime))
+                .signWith(secretKey)
+                .compact();
     }
 
     public String generateRefreshToken(String email) {

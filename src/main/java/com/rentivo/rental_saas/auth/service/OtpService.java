@@ -4,6 +4,7 @@ import com.rentivo.rental_saas.auth.common.AccountType;
 import com.rentivo.rental_saas.auth.common.OnboardingStatus;
 import com.rentivo.rental_saas.auth.dto.AuthResponse;
 import com.rentivo.rental_saas.auth.entity.Otps;
+import com.rentivo.rental_saas.auth.entity.Permissions;
 import com.rentivo.rental_saas.auth.entity.Users;
 import com.rentivo.rental_saas.auth.repository.OtpRepo;
 import com.rentivo.rental_saas.auth.repository.UserRepo;
@@ -19,7 +20,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -91,8 +94,14 @@ public class OtpService {
             throw new InvalidOtpException("Invalid OTP");
         }
 
-        Users user = userRepository.findByIdWithRole(userId)
+        Users user = userRepository.findByIdWithRoleAndPermissions(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Set<String> permissions = user.getRole()
+                .getPermissions()
+                .stream()
+                .map(Permissions::getPermissionName)
+                .collect(Collectors.toSet());
 
         AuthResponse response = new AuthResponse();
 
@@ -108,11 +117,10 @@ public class OtpService {
                 );
 
                 String accessToken = jwtService.generateAccessToken(
-                        user.getEmail(), user.getRole().getRoleName()
+                        user.getEmail(), user.getRole().getRoleName(), permissions
                 );
 
                 String refreshToken = refreshTokenService.issueRefreshToken(user);
-//                        jwtService.generateRefreshToken(user.getEmail());
 
                 response.setAccessToken(accessToken);
                 response.setRefreshToken(refreshToken);
@@ -125,11 +133,10 @@ public class OtpService {
                 }
 
                 String accessToken = jwtService.generateAccessToken(
-                        user.getEmail(), user.getRole().getRoleName()
+                        user.getEmail(), user.getRole().getRoleName(), permissions
                 );
 
                 String refreshToken = refreshTokenService.issueRefreshToken(user);
-//                        jwtService.generateRefreshToken(user.getEmail());
 
                 response.setAccessToken(accessToken);
                 response.setRefreshToken(refreshToken);
