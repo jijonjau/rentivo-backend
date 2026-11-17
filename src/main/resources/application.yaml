@@ -83,7 +83,7 @@ rentivo:
       reset-password-otp: reset.password.otp.queue
 
   otp:
-    expiry: 300000
+    expiry: 180000
     max-attempts: 5
     resend-cooldown: 60000
     max-resend-attempts: 3
@@ -97,3 +97,6 @@ rentivo:
 
   cors:
     allowed-origins: http://localhost:3000
+
+  seeder:
+    enabled: false

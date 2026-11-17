@@ -1,38 +1,50 @@
 package com.rentivo.rental_saas.auth.config;
 
+import com.rentivo.rental_saas.auth.common.AccountType;
+import com.rentivo.rental_saas.auth.entity.Permissions;
 import com.rentivo.rental_saas.auth.entity.Roles;
+import com.rentivo.rental_saas.auth.repository.PermissionsRepo;
 import com.rentivo.rental_saas.auth.repository.RolesRepo;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 
+import java.util.HashSet;
 import java.util.List;
 
 @Configuration
 public class RoleSeederConfig {
 
     @Bean
-    CommandLineRunner seedRoles(RolesRepo repo) {
+    @Order(1)
+    CommandLineRunner seedSuperAdminRole(
+            RolesRepo roleRepo,
+            PermissionsRepo permissionsRepo
+    ) {
         return args -> {
-            List<String> roles = List.of(
-                    "SUPER_ADMIN",
-                    "TENANT",
-                    "LANDLORD",
-                    "AGENCY_APPLICANT",
-                    "AGENCY_ADMIN",
-                    "AGENCY_AGENT",
-                    "AGENCY_ACCOUNTANT"
-            );
 
-            for (String name : roles) {
-                if (!repo.existsByRoleName(name)) {
-                    Roles role = new Roles();
-                    role.setRoleName(name);
-                    role.setEnabled(true);
+            List<Permissions> permissions = permissionsRepo.findAll();
 
-                    repo.save(role);
-                }
-            }
+            Roles role = roleRepo
+                    .findByRoleNameAndAccountTypeAndSystemRole(
+                            "SUPER_ADMIN",
+                            AccountType.PLATFORM,
+                            true
+                    )
+                    .orElseGet(() -> {
+                        Roles newRole = new Roles();
+                        newRole.setRoleName("SUPER_ADMIN");
+                        newRole.setAccountType(AccountType.PLATFORM);
+                        newRole.setSystemRole(true);
+                        newRole.setOwner(null);
+                        newRole.setEnabled(true);
+                        return newRole;
+                    });
+
+            role.setPermissions(new HashSet<>(permissions));
+
+            roleRepo.save(role);
         };
     }
 }

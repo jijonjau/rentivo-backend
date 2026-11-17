@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
@@ -35,9 +36,15 @@ public class AdminSeederConfig {
     @Value("${rentivo.admin.password:}")
     private String password;
 
+    @Value("${rentivo.seeder.enabled}")
+    private boolean seedEnabled;
+
     @Bean
+    @Order(2)
     CommandLineRunner seedSuperAdmin() {
         return args -> {
+
+            if (!seedEnabled) return;
 
             // Skip seeding if no bootstrap credentials are configured.
             if (firstName.isBlank() && lastName.isBlank()
@@ -68,7 +75,12 @@ public class AdminSeederConfig {
                 return;
             }
 
-            Roles superAdminRole = rolesRepository.findByRoleName("SUPER_ADMIN")
+            Roles superAdminRole = rolesRepository
+                    .findByRoleNameAndAccountTypeAndSystemRole(
+                            "SUPER_ADMIN",
+                            AccountType.PLATFORM,
+                            true
+                    )
                     .orElseThrow(() -> new IllegalStateException(
                             "SUPER_ADMIN role not found. Run RoleSeederConfig first."
                     ));

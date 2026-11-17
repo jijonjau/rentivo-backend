@@ -96,23 +96,20 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/change-password")
                         .hasAuthority("ACCESS")
 
-                        // Role-based access
-                        .requestMatchers("/api/v1/admin/**")
-                        .hasRole("SUPER_ADMIN")
+                        // Role CRUD APIs
+                        .requestMatchers(HttpMethod.GET, "/api/v1/roles/**")
+                        .hasAuthority("ROLE_READ")
 
-                        .requestMatchers("/api/v1/agency/**")
-                        .hasAnyRole(
-                                "SUPER_ADMIN",
-                                "AGENCY_ADMIN",
-                                "AGENCY_AGENT",
-                                "AGENCY_ACCOUNTANT"
-                        )
+                        .requestMatchers(HttpMethod.POST, "/api/v1/roles")
+                        .hasAuthority("ROLE_CREATE")
 
-                        .requestMatchers("/api/v1/landlord/**")
-                        .hasAnyRole("SUPER_ADMIN", "LANDLORD")
+                        .requestMatchers(
+                                HttpMethod.PUT, "/api/v1/roles/**"
+                        ).hasAuthority("ROLE_UPDATE")
 
-                        .requestMatchers("/api/v1/tenant/**")
-                        .hasAnyRole("SUPER_ADMIN", "TENANT")
+                        .requestMatchers(
+                                HttpMethod.PATCH, "/api/v1/roles/*/status"
+                        ).hasAuthority("ROLE_ENABLE_DISABLE")
 
                         // Remaining endpoints require ACCESS
                         .anyRequest().hasAuthority("ACCESS")

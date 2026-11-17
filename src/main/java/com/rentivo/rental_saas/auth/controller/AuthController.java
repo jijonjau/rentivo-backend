@@ -1,6 +1,8 @@
 package com.rentivo.rental_saas.auth.controller;
 
+import com.rentivo.rental_saas.auth.common.AccountType;
 import com.rentivo.rental_saas.auth.dto.*;
+import com.rentivo.rental_saas.auth.entity.Permissions;
 import com.rentivo.rental_saas.auth.entity.Users;
 import com.rentivo.rental_saas.auth.security.CookieService;
 import com.rentivo.rental_saas.auth.security.JwtService;
@@ -176,7 +178,10 @@ public class AuthController {
 
         String newAccessToken = jwtService.generateAccessToken(
                 user.getEmail(),
-                user.getRole().getRoleName()
+                user.getRole().getRoleName(),
+                user.getRole().getPermissions().stream()
+                        .map(Permissions::getPermissionName)
+                        .toList()
         );
 
         cookieService.addAuthenticationCookies(
@@ -214,9 +219,10 @@ public class AuthController {
         );
     }
 
-    @PostMapping("/role")
-    public ResponseEntity<?> createRole(@Valid @RequestBody CreateRoleRequest createRoleRequest) {
-        roleService.createRole(createRoleRequest);
+    @PostMapping("/roles")
+    public ResponseEntity<?> createRole(@Valid @RequestBody CreateRoleRequest createRoleRequest, Authentication authentication) {
+        Users user = (Users) authentication.getPrincipal();
+        roleService.createRole(createRoleRequest, user);
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 ApiResponse.success(201, "Role created successfully", null)
         );
@@ -224,44 +230,75 @@ public class AuthController {
 
     @GetMapping("/roles")
     public ResponseEntity<?> getRoles(
-            @RequestParam(defaultValue = "false") boolean enabled,
+            @RequestParam(required = false) Integer accountType,
+            @RequestParam(required = false) Boolean enabled,
             @RequestParam(defaultValue = "0") int pageNumber,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "10") int size,
+            Authentication authentication
     ) {
+        Users user = (Users) authentication.getPrincipal();
+
+        AccountType type = accountType != null
+                ? AccountType.fromCode(accountType)
+                : null;
+
         PageRequest pageRequest = PageRequest.of(pageNumber, size);
+
         return ResponseEntity.ok(ApiResponse.success(
-                200, "Roles fetched successfully", roleService.fetchRoles(enabled, pageRequest)
+                200,
+                "Roles fetched successfully",
+                roleService.fetchRoles(enabled, type, pageRequest, user)
         ));
     }
 
     @GetMapping("/roles/{id}")
     public ResponseEntity<?> getRoleById(
-            @PathVariable Long id
+            @PathVariable Long id,
+            Authentication authentication
     ) {
+        Users user = (Users) authentication.getPrincipal();
+
         return ResponseEntity.ok(ApiResponse.success(
-                200, "Role fetched successfully", roleService.fetchRoleById(id)
+                200,
+                "Role fetched successfully",
+                roleService.fetchRoleById(id, user)
         ));
+    }
+
+    @GetMapping("/permissions")
+    public ResponseEntity<?> fetchPermissions() {
+        return ResponseEntity.ok(ApiResponse.success(200,
+                "Permissions fetched successfully",
+                roleService.fetchPermissions()));
     }
 
     @PutMapping("/roles/{id}")
     public ResponseEntity<?> updateRole(
             @PathVariable Long id,
-            @Valid @RequestBody CreateRoleRequest createRoleRequest
+            @Valid @RequestBody CreateRoleRequest request,
+            Authentication authentication
     ) {
-        roleService.updateRole(id, createRoleRequest);
+        Users user = (Users) authentication.getPrincipal();
+
+        roleService.updateRole(id, request, user);
+
         return ResponseEntity.ok(ApiResponse.success(
-                200, "Role updated successfully", null)
-        );
+                200, "Role updated successfully", null
+        ));
     }
 
     @PatchMapping("/roles/{id}/status")
-    public ResponseEntity<?> disableRole(
+    public ResponseEntity<?> updateRoleStatus(
             @PathVariable Long id,
-            @RequestParam boolean enabled
+            @RequestParam boolean enabled,
+            Authentication authentication
     ) {
-        roleService.updateRoleStatus(id, enabled);
+        Users user = (Users) authentication.getPrincipal();
+
+        roleService.updateRoleStatus(id, enabled, user);
+
         return ResponseEntity.ok(ApiResponse.success(
-                200, "Role disabled successfully", null
+                200, "Role status updated successfully", null
         ));
     }
 }
