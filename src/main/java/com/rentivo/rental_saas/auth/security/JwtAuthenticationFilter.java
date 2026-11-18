@@ -54,7 +54,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 uri.equals("/api/v1/auth/login") ||
                 uri.equals("/api/v1/auth/register") ||
                 uri.equals("/api/v1/auth/forgot-password") ||
-                uri.equals("/api/v1/auth/logout")) {
+                uri.equals("/api/v1/auth/logout") ||
+                uri.equals("/api/v1/properties/public") ||
+                uri.startsWith("/api/v1/properties/public/")) {
 
             filterChain.doFilter(request, response);
             return;

@@ -11,13 +11,13 @@ public enum AccountType {
     AGENCY(3),
     PLATFORM(4);
 
-    private final int code;
+    private final long code;
 
-    AccountType(int code) {
+    AccountType(long code) {
         this.code = code;
     }
 
-    public static AccountType fromCode(int code) {
+    public static AccountType fromCode(long code) {
         return Arrays.stream(values())
                 .filter(type -> type.code == code)
                 .findFirst()

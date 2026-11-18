@@ -19,5 +19,5 @@ public class CreateUserRequest {
     private String password;
     private String phoneNumber;
     @NotNull
-    private AccountType accountType;
+    private Integer accountType;
 }

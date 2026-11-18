@@ -2,7 +2,7 @@ package com.rentivo.rental_saas.auth.service;
 
 import com.rentivo.rental_saas.auth.common.AccountType;
 import com.rentivo.rental_saas.auth.dto.CreateRoleRequest;
-import com.rentivo.rental_saas.auth.dto.FetchPermissionResponse;
+import com.rentivo.rental_saas.auth.dto.FetchReferenceData;
 import com.rentivo.rental_saas.auth.dto.FetchRoleResponse;
 import com.rentivo.rental_saas.auth.entity.Permissions;
 import com.rentivo.rental_saas.auth.entity.Roles;
@@ -121,10 +121,15 @@ public class RoleService {
                 new FetchRoleResponse(
                         role.getId(),
                         role.getRoleName(),
+                        role.getAccountType(),
                         role.getPermissions().stream()
                                 .map(Permissions::getId)
                                 .collect(Collectors.toSet()),
-                        role.getCreatedAt()
+                        role.isEnabled(),
+                        role.isSystemRole(),
+                        role.getOwner() != null ? role.getOwner().getId() : null,
+                        role.getCreatedAt(),
+                        role.getUpdatedAt()
                 )
         );
 
@@ -161,18 +166,23 @@ public class RoleService {
         return new FetchRoleResponse(
                 role.getId(),
                 role.getRoleName(),
+                role.getAccountType(),
                 role.getPermissions().stream()
                         .map(Permissions::getId)
                         .collect(Collectors.toSet()),
-                role.getCreatedAt()
+                role.isEnabled(),
+                role.isSystemRole(),
+                role.getOwner() != null ? role.getOwner().getId() : null,
+                role.getCreatedAt(),
+                role.getUpdatedAt()
         );
     }
 
     @Transactional(readOnly = true)
-    public List<FetchPermissionResponse> fetchPermissions() {
+    public List<FetchReferenceData> fetchPermissions() {
         return permissionsRepo.findAll()
                 .stream()
-                .map(permission -> new FetchPermissionResponse(
+                .map(permission -> new FetchReferenceData(
                         permission.getId(),
                         permission.getPermissionName()
                 ))

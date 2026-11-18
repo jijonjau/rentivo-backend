@@ -1,6 +1,7 @@
 package com.rentivo.rental_saas.auth.config;
 
 import com.rentivo.rental_saas.auth.security.JwtAuthenticationFilter;
+import jakarta.servlet.DispatcherType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -62,6 +63,8 @@ public class SecurityConfig {
 //                )
 
                 .authorizeHttpRequests(auth -> auth
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+                        .requestMatchers("/error").permitAll()
 
                         // Allow CORS preflight requests
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
@@ -71,7 +74,10 @@ public class SecurityConfig {
                                 "/api/v1/auth/register",
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/forgot-password",
-                                "/api/v1/auth/logout"
+                                "/api/v1/auth/logout",
+                                "/api/v1/properties/public",
+                                "/api/v1/properties/public/*",
+                                "/api/v1/properties/public/images/*"
                         ).permitAll()
 
                         // Refresh token only
@@ -91,10 +97,6 @@ public class SecurityConfig {
                         // Password reset token only
                         .requestMatchers("/api/v1/auth/reset-password")
                         .hasAuthority("PASSWORD_RESET")
-
-                        // Change password requires access token
-                        .requestMatchers("/api/v1/auth/change-password")
-                        .hasAuthority("ACCESS")
 
                         // Role CRUD APIs
                         .requestMatchers(HttpMethod.GET, "/api/v1/roles/**")

@@ -1,5 +1,6 @@
 package com.rentivo.rental_saas.auth.service;
 
+import com.rentivo.rental_saas.auth.common.AccountType;
 import com.rentivo.rental_saas.auth.common.OnboardingStatus;
 import com.rentivo.rental_saas.auth.dto.AuthResponse;
 import com.rentivo.rental_saas.auth.dto.CreateUserRequest;
@@ -65,26 +66,38 @@ public class AuthService {
     }
 
     public AuthResponse registerUser(CreateUserRequest createUserRequest) {
+        AccountType accountType =
+                AccountType.fromCode(createUserRequest.getAccountType());
+
         if (userRepository.existsByEmail(createUserRequest.getEmail())) {
             throw new ResourceAlreadyExistsException("Email already exists");
         }
-        String roleName = switch (createUserRequest.getAccountType()) {
+
+        String roleName = switch (accountType) {
             case TENANT -> "TENANT";
             case LANDLORD -> "LANDLORD";
-            case AGENCY -> "AGENCY_APPLICANT";
+            case AGENCY -> "AGENCY_USER";
             case PLATFORM -> throw new IllegalArgumentException(
                     "Invalid account type"
             );
         };
 
-        Roles role = roleRepo.findByRoleName(roleName)
-                .orElseThrow(() -> new ResourceNotFoundException("Role not found"));
+        Roles role = roleRepo
+                .findByRoleNameAndAccountTypeAndSystemRole(
+                        roleName,
+                        accountType,
+                        true
+                )
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Role not found")
+                );
+
         Users user = new Users();
         user.setFirstName(createUserRequest.getFirstName());
         user.setLastName(createUserRequest.getLastName());
         user.setEmail(createUserRequest.getEmail());
         user.setPhoneNumber(createUserRequest.getPhoneNumber());
-        user.setAccountType(createUserRequest.getAccountType());
+        user.setAccountType(accountType);
         user.setRole(role);
         user.setPasswordHash(passwordEncoder.encode(createUserRequest.getPassword()));
         user.setVerified(false);
