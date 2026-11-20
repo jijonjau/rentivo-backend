@@ -1,10 +1,6 @@
-
 package com.rentivo.rental_saas.auth.service;
 
-import com.rentivo.rental_saas.auth.common.AccountType;
-import com.rentivo.rental_saas.auth.common.AgencyVerificationStatus;
-import com.rentivo.rental_saas.auth.common.ListingStatus;
-import com.rentivo.rental_saas.auth.common.PropertyType;
+import com.rentivo.rental_saas.auth.common.*;
 import com.rentivo.rental_saas.auth.config.FileStorageProperties;
 import com.rentivo.rental_saas.auth.dto.CreatePropertyRequest;
 import com.rentivo.rental_saas.auth.dto.FetchPropertyResponse;
@@ -256,25 +252,28 @@ public class PropertyService {
                     "Property is not awaiting approval");
         }
 
-        if (Boolean.TRUE.equals(request.getApproved())) {
+        ReviewStatus reviewStatus = ReviewStatus.fromCode(request.getStatus());
+
+        if (reviewStatus == ReviewStatus.REJECTED &&
+                (request.getDescription() == null ||
+                        request.getDescription().isBlank())) {
+
+            throw new IllegalArgumentException(
+                    "A rejection reason is required");
+        }
+
+        property.setReviewDescription(request.getDescription());
+
+        if (reviewStatus == ReviewStatus.APPROVED) {
 
             validatePropertyOwnerAccount(property);
 
             property.setListingStatus(ListingStatus.PUBLISHED);
             property.setEnabled(true);
-            property.setReviewDescription(request.getDescription());
 
         } else {
 
-            if (request.getDescription() == null
-                    || request.getDescription().isBlank()) {
-
-                throw new IllegalArgumentException(
-                        "A rejection reason is required");
-            }
-
             property.setListingStatus(ListingStatus.REJECTED);
-            property.setReviewDescription(request.getDescription());
             property.setEnabled(false);
         }
 
@@ -296,8 +295,7 @@ public class PropertyService {
                 yield propertyRepo.findByAgencyId(user.getAgencyId(), pageable);
             }
 
-            case LANDLORD ->
-                    propertyRepo.findByLandlordId(user.getId(), pageable);
+            case LANDLORD -> propertyRepo.findByLandlordId(user.getId(), pageable);
 
             default -> throw new AccessDeniedException(
                     "You are not authorized to access these properties");
@@ -409,15 +407,13 @@ public class PropertyService {
 
         return switch (user.getAccountType()) {
 
-            case AGENCY ->
-                    property.getAgency() != null
-                            && user.getAgencyId() != null
-                            && property.getAgency().getId()
-                            .equals(user.getAgencyId());
+            case AGENCY -> property.getAgency() != null
+                    && user.getAgencyId() != null
+                    && property.getAgency().getId()
+                    .equals(user.getAgencyId());
 
-            case LANDLORD ->
-                    property.getLandlordId() != null
-                            && property.getLandlordId().equals(user.getId());
+            case LANDLORD -> property.getLandlordId() != null
+                    && property.getLandlordId().equals(user.getId());
 
             default -> false;
         };
@@ -437,12 +433,12 @@ public class PropertyService {
 
             Agencies agency = property.getAgency();
 
-            if (!agency.isEnabled()
+            if (agency.getStatus() != EntityStatus.ACTIVE
                     || agency.getVerificationStatus()
                     != AgencyVerificationStatus.VERIFIED) {
 
                 throw new IllegalStateException(
-                        "The agency must be enabled and verified before this property can be approved");
+                        "The agency must be active and verified before this property can be approved");
             }
 
         } else {
@@ -456,9 +452,9 @@ public class PropertyService {
                     .orElseThrow(() ->
                             new ResourceNotFoundException("Landlord not found"));
 
-            if (!landlord.isEnabled()) {
+            if (landlord.getStatus() != EntityStatus.ACTIVE) {
                 throw new IllegalStateException(
-                        "The landlord account must be enabled before this property can be approved");
+                        "The landlord account must be active before this property can be approved");
             }
         }
     }

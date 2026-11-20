@@ -35,7 +35,7 @@ public class UserManagementService {
                 user.getRole().getRoleName(),
                 user.getOnboardingStatus(),
                 user.isVerified(),
-                user.isEnabled(),
+                user.getStatus().name(),
                 user.getRole().getPermissions()
                         .stream()
                         .map(Permissions::getPermissionName)

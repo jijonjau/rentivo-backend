@@ -1,8 +1,6 @@
 package com.rentivo.rental_saas.auth.service;
 
-import com.rentivo.rental_saas.auth.common.AccountType;
-import com.rentivo.rental_saas.auth.common.AgencyVerificationStatus;
-import com.rentivo.rental_saas.auth.common.OnboardingStatus;
+import com.rentivo.rental_saas.auth.common.*;
 import com.rentivo.rental_saas.auth.dto.CreateAgencyRequest;
 import com.rentivo.rental_saas.auth.dto.FetchAgencyResponse;
 import com.rentivo.rental_saas.auth.dto.ReviewApprovalRequest;
@@ -29,7 +27,6 @@ import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
 
 @Service
 @AllArgsConstructor
@@ -38,6 +35,20 @@ public class AgencyService {
     private final AgencyRepo agencyRepo;
     private final UserRepo userRepo;
     private final FileStorageService fileStorageService;
+
+    // Helper methods
+    private static @NonNull Agencies getAgencies(CreateAgencyRequest request) {
+        Agencies agency = new Agencies();
+
+        agency.setAgencyName(request.getAgencyName());
+        agency.setRegistrationNumber(request.getRegistrationNumber());
+        agency.setEmail(request.getEmail());
+        agency.setPhoneNumber(request.getPhoneNumber());
+        agency.setPhysicalAddress(request.getPhysicalAddress());
+        agency.setVerificationStatus(AgencyVerificationStatus.PENDING);
+        agency.setStatus(EntityStatus.DISABLED);
+        return agency;
+    }
 
     @Transactional
     public void createAgency(
@@ -112,7 +123,7 @@ public class AgencyService {
                 agency.getPhoneNumber(),
                 agency.getPhysicalAddress(),
                 agency.getVerificationStatus(),
-                agency.isEnabled(),
+                agency.getStatus().name(),
                 agency.getRegistrationDocumentUrl() != null,
                 agency.getCreatedAt()
         );
@@ -152,7 +163,7 @@ public class AgencyService {
     @Transactional(readOnly = true)
     public PageResponseDto<FetchAgencyResponse> fetchAllAgencies(
             AgencyVerificationStatus verificationStatus,
-            Boolean enabled,
+            EntityStatus status,
             String search,
             Pageable pageable,
             Users user) {
@@ -162,7 +173,7 @@ public class AgencyService {
         }
 
         Page<Agencies> agencies = agencyRepo.findAllWithFilters(
-                verificationStatus, enabled, search, pageable);
+                verificationStatus, status, search, pageable);
 
         Page<FetchAgencyResponse> mapped = agencies.map(this::mapToFetchAgencyResponse);
 
@@ -186,35 +197,23 @@ public class AgencyService {
             throw new IllegalStateException("Agency is not awaiting verification");
         }
 
-        if (Boolean.TRUE.equals(request.getApproved())) {
+        ReviewStatus reviewStatus = ReviewStatus.fromCode(request.getStatus());
+
+        agency.setReviewDescription(request.getDescription());
+
+        if (reviewStatus == ReviewStatus.APPROVED) {
             agency.setVerificationStatus(AgencyVerificationStatus.VERIFIED);
-            agency.setReviewDescription(request.getDescription());
-            agency.setEnabled(true);
+            agency.setStatus(EntityStatus.ACTIVE);
         } else {
             if (request.getDescription() == null || request.getDescription().isBlank()) {
                 throw new IllegalArgumentException("A rejection reason is required");
             }
 
             agency.setVerificationStatus(AgencyVerificationStatus.REJECTED);
-            agency.setReviewDescription(request.getDescription());
-            agency.setEnabled(false);
+            agency.setStatus(EntityStatus.DISABLED);
         }
 
         agencyRepo.save(agency);
-    }
-
-    // Helper method
-    private static @NonNull Agencies getAgencies(CreateAgencyRequest request) {
-        Agencies agency = new Agencies();
-
-        agency.setAgencyName(request.getAgencyName());
-        agency.setRegistrationNumber(request.getRegistrationNumber());
-        agency.setEmail(request.getEmail());
-        agency.setPhoneNumber(request.getPhoneNumber());
-        agency.setPhysicalAddress(request.getPhysicalAddress());
-        agency.setVerificationStatus(AgencyVerificationStatus.PENDING);
-        agency.setEnabled(false);
-        return agency;
     }
 
     private FetchAgencyResponse mapToFetchAgencyResponse(Agencies agency) {
@@ -226,7 +225,7 @@ public class AgencyService {
                 agency.getPhoneNumber(),
                 agency.getPhysicalAddress(),
                 agency.getVerificationStatus(),
-                agency.isEnabled(),
+                agency.getStatus().name(),
                 agency.getRegistrationDocumentUrl() != null
                         && !agency.getRegistrationDocumentUrl().isBlank(),
                 agency.getCreatedAt()

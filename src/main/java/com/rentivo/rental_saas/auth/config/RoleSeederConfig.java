@@ -1,10 +1,12 @@
 package com.rentivo.rental_saas.auth.config;
 
 import com.rentivo.rental_saas.auth.common.AccountType;
+import com.rentivo.rental_saas.auth.common.EntityStatus;
 import com.rentivo.rental_saas.auth.entity.Permissions;
 import com.rentivo.rental_saas.auth.entity.Roles;
 import com.rentivo.rental_saas.auth.repository.PermissionsRepo;
 import com.rentivo.rental_saas.auth.repository.RolesRepo;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,6 +20,9 @@ import java.util.stream.Collectors;
 @Configuration
 public class RoleSeederConfig {
 
+    @Value("${rentivo.seeder.enabled}")
+    private boolean seedEnabled;
+
     @Bean
     @Order(1)
     CommandLineRunner seedSystemRoles(
@@ -25,6 +30,7 @@ public class RoleSeederConfig {
             PermissionsRepo permissionsRepo
     ) {
         return args -> {
+            if (!seedEnabled) return;
 
             List<Permissions> permissions = permissionsRepo.findAll();
 
@@ -85,7 +91,7 @@ public class RoleSeederConfig {
                             newRole.setAccountType(accountTypes.get(roleName));
                             newRole.setSystemRole(true);
                             newRole.setOwner(null);
-                            newRole.setEnabled(true);
+                            newRole.setStatus(EntityStatus.ACTIVE);
                             return newRole;
                         });
 

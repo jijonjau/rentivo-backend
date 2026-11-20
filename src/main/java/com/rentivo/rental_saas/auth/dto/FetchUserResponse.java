@@ -15,6 +15,6 @@ public record FetchUserResponse(
         String role,
         OnboardingStatus onboardingStatus,
         boolean verified,
-        boolean enabled,
+        String status,
         Set<String> permissions
 ) {}

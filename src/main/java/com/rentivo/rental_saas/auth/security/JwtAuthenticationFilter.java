@@ -1,5 +1,6 @@
 package com.rentivo.rental_saas.auth.security;
 
+import com.rentivo.rental_saas.auth.common.EntityStatus;
 import com.rentivo.rental_saas.auth.entity.Users;
 import com.rentivo.rental_saas.auth.repository.UserRepo;
 import jakarta.servlet.FilterChain;
@@ -146,7 +147,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Users user = userRepository.findByEmailWithRole(email)
                         .orElse(null);
 
-                if (user == null || !user.isEnabled() || !user.isVerified()) {
+                if (user == null || user.getStatus() != EntityStatus.ACTIVE || !user.isVerified()) {
                     response.sendError(
                             HttpServletResponse.SC_UNAUTHORIZED,
                             "User account is unavailable"

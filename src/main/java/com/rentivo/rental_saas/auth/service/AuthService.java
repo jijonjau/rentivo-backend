@@ -1,6 +1,7 @@
 package com.rentivo.rental_saas.auth.service;
 
 import com.rentivo.rental_saas.auth.common.AccountType;
+import com.rentivo.rental_saas.auth.common.EntityStatus;
 import com.rentivo.rental_saas.auth.common.OnboardingStatus;
 import com.rentivo.rental_saas.auth.dto.AuthResponse;
 import com.rentivo.rental_saas.auth.dto.CreateUserRequest;
@@ -43,7 +44,7 @@ public class AuthService {
             throw new InvalidCredentialsException("Invalid email or password");
         }
 
-        if (!user.isEnabled() || !user.isVerified()) {
+        if (user.getStatus() != EntityStatus.ACTIVE || !user.isVerified()) {
             throw new AccountDisabledException("Account is unavailable");
         }
 
@@ -101,7 +102,7 @@ public class AuthService {
         user.setRole(role);
         user.setPasswordHash(passwordEncoder.encode(createUserRequest.getPassword()));
         user.setVerified(false);
-        user.setEnabled(false);
+        user.setStatus(EntityStatus.DISABLED);
         user.setOnboardingStatus(OnboardingStatus.PENDING_VERIFICATION);
         Users savedUser = userRepository.save(user);
 
@@ -130,7 +131,7 @@ public class AuthService {
 
         userRepository.findByEmail(email).ifPresent(user -> {
 
-            if (!user.isEnabled() || !user.isVerified()) {
+            if (user.getStatus() != EntityStatus.ACTIVE || !user.isVerified()) {
                 return;
             }
 
@@ -172,14 +173,14 @@ public class AuthService {
             }
 
             case LOGIN -> {
-                if (!user.isEnabled() || !user.isVerified()) {
+                if (user.getStatus() != EntityStatus.ACTIVE || !user.isVerified()) {
                     throw new AccountDisabledException("Account is unavailable");
                 }
                 queue = "login.otp";
             }
 
             case PASSWORD_RESET -> {
-                if (!user.isEnabled() || !user.isVerified()) {
+                if (user.getStatus() != EntityStatus.ACTIVE || !user.isVerified()) {
                     throw new AccountDisabledException("Account is unavailable");
                 }
                 queue = "reset.password.otp";

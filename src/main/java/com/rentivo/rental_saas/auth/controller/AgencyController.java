@@ -1,6 +1,7 @@
 package com.rentivo.rental_saas.auth.controller;
 
 import com.rentivo.rental_saas.auth.common.AgencyVerificationStatus;
+import com.rentivo.rental_saas.auth.common.EntityStatus;
 import com.rentivo.rental_saas.auth.dto.CreateAgencyRequest;
 import com.rentivo.rental_saas.auth.dto.FetchAgencyResponse;
 import com.rentivo.rental_saas.auth.dto.ReviewApprovalRequest;
@@ -77,13 +78,17 @@ public class AgencyController {
     @GetMapping("/platform")
     public ResponseEntity<?> fetchAllAgencies(
             @RequestParam(required = false) AgencyVerificationStatus verificationStatus,
-            @RequestParam(required = false) Boolean enabled,
+            @RequestParam(required = false) Integer status,
             @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int pageNumber,
             @RequestParam(defaultValue = "10") int size,
             Authentication authentication) {
 
         Users user = (Users) authentication.getPrincipal();
+
+        EntityStatus entityStatus = status != null
+                ? EntityStatus.fromCode(status)
+                : null;
 
         PageRequest pageRequest = PageRequest.of(pageNumber, size);
 
@@ -92,7 +97,7 @@ public class AgencyController {
                         200,
                         "Agencies fetched successfully",
                         agencyService.fetchAllAgencies(
-                                verificationStatus, enabled, search, pageRequest, user)
+                                verificationStatus, entityStatus, search, pageRequest, user)
                 )
         );
     }

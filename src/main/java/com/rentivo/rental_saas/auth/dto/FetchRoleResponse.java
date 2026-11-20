@@ -10,7 +10,7 @@ public record FetchRoleResponse(
         String roleName,
         AccountType accountType,
         Set<Long> permissionIds,
-        boolean enabled,
+        String status,
         boolean systemRole,
         Long ownerId,
         LocalDateTime createdAt,

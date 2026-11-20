@@ -12,7 +12,7 @@ public record FetchAgencyResponse(
         String phoneNumber,
         String physicalAddress,
         AgencyVerificationStatus verificationStatus,
-        boolean enabled,
+        String status,
         boolean hasRegistrationDocument,
         LocalDateTime createdAt
 ) {}

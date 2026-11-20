@@ -1,6 +1,7 @@
 package com.rentivo.rental_saas.auth.service;
 
 import com.rentivo.rental_saas.auth.common.AccountType;
+import com.rentivo.rental_saas.auth.common.EntityStatus;
 import com.rentivo.rental_saas.auth.dto.CreateRoleRequest;
 import com.rentivo.rental_saas.auth.dto.FetchReferenceData;
 import com.rentivo.rental_saas.auth.dto.FetchRoleResponse;
@@ -71,7 +72,7 @@ public class RoleService {
         role.setRoleName(request.getRoleName());
         role.setAccountType(accountType);
         role.setPermissions(permissions);
-        role.setEnabled(true);
+        role.setStatus(EntityStatus.ACTIVE);
         role.setSystemRole(isSuperAdmin);
 
         // Only custom roles have an owner
@@ -84,7 +85,7 @@ public class RoleService {
 
     @Transactional(readOnly = true)
     public PageResponseDto<FetchRoleResponse> fetchRoles(
-            Boolean enabled,
+            EntityStatus status,
             AccountType accountType,
             Pageable pageable,
             Users user
@@ -96,7 +97,7 @@ public class RoleService {
         Page<Roles> roles;
 
         if (isSuperAdmin) {
-            roles = roleRepo.findAllWithFilters(enabled, accountType, pageable);
+            roles = roleRepo.findAllWithFilters(status, accountType, pageable);
         } else {
             AccountType userAccountType = user.getAccountType();
 
@@ -110,7 +111,7 @@ public class RoleService {
             }
 
             roles = roleRepo.findVisibleRoles(
-                    enabled != null ? enabled : true,
+                    status != null ? status : EntityStatus.ACTIVE,
                     userAccountType,
                     user,
                     pageable
@@ -125,7 +126,7 @@ public class RoleService {
                         role.getPermissions().stream()
                                 .map(Permissions::getId)
                                 .collect(Collectors.toSet()),
-                        role.isEnabled(),
+                        role.getStatus().name(),
                         role.isSystemRole(),
                         role.getOwner() != null ? role.getOwner().getId() : null,
                         role.getCreatedAt(),
@@ -170,7 +171,7 @@ public class RoleService {
                 role.getPermissions().stream()
                         .map(Permissions::getId)
                         .collect(Collectors.toSet()),
-                role.isEnabled(),
+                role.getStatus().name(),
                 role.isSystemRole(),
                 role.getOwner() != null ? role.getOwner().getId() : null,
                 role.getCreatedAt(),
@@ -224,14 +225,17 @@ public class RoleService {
     }
 
     @Transactional
-    public void updateRoleStatus(Long id, boolean enabled, Users user) {
+    public void updateRoleStatus(Long id, long statusCode, Users user) {
 
         Roles role = roleRepo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Role not found"));
 
         validateRoleAccess(user, role);
 
-        role.setEnabled(enabled);
+        EntityStatus status = EntityStatus.fromCode(statusCode);
+
+        role.setStatus(status);
+
         roleRepo.save(role);
     }
 

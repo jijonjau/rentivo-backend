@@ -1,6 +1,7 @@
 package com.rentivo.rental_saas.auth.controller;
 
 import com.rentivo.rental_saas.auth.common.AccountType;
+import com.rentivo.rental_saas.auth.common.EntityStatus;
 import com.rentivo.rental_saas.auth.dto.*;
 import com.rentivo.rental_saas.auth.entity.Permissions;
 import com.rentivo.rental_saas.auth.entity.Users;
@@ -231,7 +232,7 @@ public class AuthController {
     @GetMapping("/roles")
     public ResponseEntity<?> getRoles(
             @RequestParam(required = false) Integer accountType,
-            @RequestParam(required = false) Boolean enabled,
+            @RequestParam(required = false) Integer status,
             @RequestParam(defaultValue = "0") int pageNumber,
             @RequestParam(defaultValue = "10") int size,
             Authentication authentication
@@ -242,12 +243,16 @@ public class AuthController {
                 ? AccountType.fromCode(accountType)
                 : null;
 
+        EntityStatus entityStatus = status != null
+                ? EntityStatus.fromCode(status)
+                : null;
+
         PageRequest pageRequest = PageRequest.of(pageNumber, size);
 
         return ResponseEntity.ok(ApiResponse.success(
                 200,
                 "Roles fetched successfully",
-                roleService.fetchRoles(enabled, type, pageRequest, user)
+                roleService.fetchRoles(entityStatus, type, pageRequest, user)
         ));
     }
 
@@ -290,12 +295,12 @@ public class AuthController {
     @PatchMapping("/roles/{id}/status")
     public ResponseEntity<?> updateRoleStatus(
             @PathVariable Long id,
-            @RequestParam boolean enabled,
+            @Valid @RequestBody long status,
             Authentication authentication
     ) {
         Users user = (Users) authentication.getPrincipal();
 
-        roleService.updateRoleStatus(id, enabled, user);
+        roleService.updateRoleStatus(id, status, user);
 
         return ResponseEntity.ok(ApiResponse.success(
                 200, "Role status updated successfully", null

@@ -1,6 +1,7 @@
 package com.rentivo.rental_saas.auth.repository;
 
 import com.rentivo.rental_saas.auth.common.AgencyVerificationStatus;
+import com.rentivo.rental_saas.auth.common.EntityStatus;
 import com.rentivo.rental_saas.auth.entity.Agencies;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,7 +29,7 @@ public interface AgencyRepo extends JpaRepository<Agencies, Long> {
     @Query("""
                 SELECT a FROM Agencies a
                 WHERE (:verificationStatus IS NULL OR a.verificationStatus = :verificationStatus)
-                AND (:enabled IS NULL OR a.enabled = :enabled)
+                AND (:status IS NULL OR a.status = :status)
                 AND (
                     CAST(:search AS string) IS NULL OR
                     LOWER(a.agencyName) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR
@@ -38,7 +39,7 @@ public interface AgencyRepo extends JpaRepository<Agencies, Long> {
             """)
     Page<Agencies> findAllWithFilters(
             @Param("verificationStatus") AgencyVerificationStatus verificationStatus,
-            @Param("enabled") Boolean enabled,
+            @Param("status")EntityStatus status,
             @Param("search") String search,
             Pageable pageable);
 }

@@ -9,7 +9,7 @@ import lombok.Setter;
 public class ReviewApprovalRequest {
 
     @NotNull
-    private Boolean approved;
+    private Integer status;
 
     private String description;
 }
