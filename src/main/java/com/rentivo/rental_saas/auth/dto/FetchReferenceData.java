@@ -7,7 +7,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @AllArgsConstructor
-public class FetchPermissionResponse {
+public class FetchReferenceData {
     private Long id;
-    private String permissionName;
+    private String name;
 }

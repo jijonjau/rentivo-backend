@@ -1,6 +1,7 @@
 package com.rentivo.rental_saas.auth.config;
 
 import com.rentivo.rental_saas.auth.common.AccountType;
+import com.rentivo.rental_saas.auth.common.EntityStatus;
 import com.rentivo.rental_saas.auth.common.OnboardingStatus;
 import com.rentivo.rental_saas.auth.entity.Roles;
 import com.rentivo.rental_saas.auth.entity.Users;
@@ -92,9 +93,9 @@ public class AdminSeederConfig {
             admin.setPasswordHash(passwordEncoder.encode(password));
             admin.setAccountType(AccountType.PLATFORM);
             admin.setRole(superAdminRole);
-            admin.setEnabled(true);
             admin.setVerified(true);
             admin.setOnboardingStatus(OnboardingStatus.COMPLETED);
+            admin.setStatus(EntityStatus.ACTIVE);
 
             userRepository.save(admin);
         };

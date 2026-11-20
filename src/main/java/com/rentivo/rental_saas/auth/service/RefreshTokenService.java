@@ -1,5 +1,6 @@
 package com.rentivo.rental_saas.auth.service;
 
+import com.rentivo.rental_saas.auth.common.EntityStatus;
 import com.rentivo.rental_saas.auth.entity.RefreshToken;
 import com.rentivo.rental_saas.auth.entity.Users;
 import com.rentivo.rental_saas.auth.repository.RefreshTokenRepo;
@@ -90,7 +91,7 @@ public class RefreshTokenService {
                         new BadCredentialsException("User not found.")
                 );
 
-        if (!user.isEnabled() || !user.isVerified()) {
+        if (user.getStatus() != EntityStatus.ACTIVE || !user.isVerified()) {
             throw new BadCredentialsException("User account is unavailable.");
         }
         // Revoke the existing token.

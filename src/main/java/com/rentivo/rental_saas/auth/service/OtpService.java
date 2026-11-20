@@ -1,6 +1,7 @@
 package com.rentivo.rental_saas.auth.service;
 
 import com.rentivo.rental_saas.auth.common.AccountType;
+import com.rentivo.rental_saas.auth.common.EntityStatus;
 import com.rentivo.rental_saas.auth.common.OnboardingStatus;
 import com.rentivo.rental_saas.auth.dto.AuthResponse;
 import com.rentivo.rental_saas.auth.entity.Otps;
@@ -109,7 +110,7 @@ public class OtpService {
 
             case REGISTER -> {
                 user.setVerified(true);
-                user.setEnabled(true);
+                user.setStatus(EntityStatus.ACTIVE);
                 user.setOnboardingStatus(
                         user.getAccountType() == AccountType.TENANT
                                 ? OnboardingStatus.COMPLETED
@@ -128,7 +129,7 @@ public class OtpService {
             }
 
             case LOGIN -> {
-                if (!user.isEnabled() || !user.isVerified()) {
+                if (user.getStatus() != EntityStatus.ACTIVE || !user.isVerified()) {
                     throw new AccountDisabledException("Account is disabled or unverified");
                 }
 
