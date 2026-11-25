@@ -1,6 +1,6 @@
 package com.rentivo.rental_saas.auth.dto;
 
-import com.rentivo.rental_saas.auth.common.AccountType;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -19,5 +19,7 @@ public class CreateUserRequest {
     private String password;
     private String phoneNumber;
     @NotNull
-    private AccountType accountType;
+    private Integer accountType;
+    @AssertTrue(message = "You must accept the terms and conditions.")
+    private boolean acceptTerms;
 }

@@ -1,6 +1,7 @@
 package com.rentivo.rental_saas.auth.entity;
 
 import com.rentivo.rental_saas.auth.common.AccountType;
+import com.rentivo.rental_saas.auth.common.EntityStatus;
 import com.rentivo.rental_saas.auth.common.OnboardingStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -46,11 +47,15 @@ public class Users {
     @Column(nullable = false)
     private OnboardingStatus onboardingStatus;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private EntityStatus status;
+
     @Column(nullable = false)
     private boolean verified;
 
     @Column(nullable = false)
-    private boolean enabled;
+    private boolean acceptTerms;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

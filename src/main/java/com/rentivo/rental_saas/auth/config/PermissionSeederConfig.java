@@ -30,6 +30,9 @@ public class PermissionSeederConfig {
                     "ROLE_CREATE",
                     "ROLE_UPDATE",
                     "ROLE_ENABLE_DISABLE",
+                    "AGENCY_READ",
+                    "AGENCY_CREATE",
+                    "AGENCY_ENABLE_DISABLE",
                     "PAYMENT_READ",
                     "ISSUE_MANAGE"
             );

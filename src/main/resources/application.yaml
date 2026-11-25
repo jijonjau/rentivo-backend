@@ -47,6 +47,11 @@ spring:
   lifecycle:
     timeout-per-shutdown-phase: 30s
 
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 50MB
+
 server:
   port: 8080
 
@@ -100,3 +105,29 @@ rentivo:
 
   seeder:
     enabled: false
+
+app:
+  file:
+    upload:
+      base-path: uploads
+
+      # Agency documents
+      agency-documents-path: ${app.file.upload.base-path}/agencies
+      max-size: 5MB
+      allowed-types:
+        - application/pdf
+        - image/jpeg
+        - image/png
+
+      # Property images
+      property-images-path: ${app.file.upload.base-path}/properties
+      max-image-size: 5MB
+      max-images: 10
+      allowed-image-types:
+        - image/jpeg
+        - image/png
+        - image/webp
+
+      # Cleanup
+      cleanup-interval-ms: 3600000 # Every hour
+      cleanup-after-hours: 24

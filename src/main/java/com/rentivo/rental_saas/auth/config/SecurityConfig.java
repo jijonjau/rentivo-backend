@@ -1,6 +1,8 @@
 package com.rentivo.rental_saas.auth.config;
 
+import com.rentivo.rental_saas.auth.security.CsrfCookieFilter;
 import com.rentivo.rental_saas.auth.security.JwtAuthenticationFilter;
+import jakarta.servlet.DispatcherType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -8,11 +10,13 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -24,6 +28,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CsrfCookieFilter csrfCookieFilter;
 
     @Value("${rentivo.cors.allowed-origins}")
     private List<String> allowedOrigins;
@@ -56,12 +61,25 @@ public class SecurityConfig {
 
         http
                 .cors(Customizer.withDefaults())
-                .csrf(AbstractHttpConfigurer::disable)
-//                .csrf(csrf -> csrf
-//                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-//                )
-
+                .csrf(csrf -> csrf
+                        .csrfTokenRepository(
+                                CookieCsrfTokenRepository.withHttpOnlyFalse()
+                        )
+                        .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
+                        .ignoringRequestMatchers(
+                                "/api/v1/auth/login",
+                                "/api/v1/auth/register",
+                                "/api/v1/auth/forgot-password",
+                                "/api/v1/auth/verify-otp",
+                                "/api/v1/auth/resend-otp",
+                                "/api/v1/properties/public",
+                                "/api/v1/properties/public/**"
+                        )
+                )
+//                .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+                        .requestMatchers("/error").permitAll()
 
                         // Allow CORS preflight requests
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
@@ -71,7 +89,9 @@ public class SecurityConfig {
                                 "/api/v1/auth/register",
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/forgot-password",
-                                "/api/v1/auth/logout"
+                                "/api/v1/properties/public",
+                                "/api/v1/properties/public/*",
+                                "/api/v1/properties/public/images/*"
                         ).permitAll()
 
                         // Refresh token only
@@ -92,10 +112,6 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/reset-password")
                         .hasAuthority("PASSWORD_RESET")
 
-                        // Change password requires access token
-                        .requestMatchers("/api/v1/auth/change-password")
-                        .hasAuthority("ACCESS")
-
                         // Role CRUD APIs
                         .requestMatchers(HttpMethod.GET, "/api/v1/roles/**")
                         .hasAuthority("ROLE_READ")
@@ -111,10 +127,22 @@ public class SecurityConfig {
                                 HttpMethod.PATCH, "/api/v1/roles/*/status"
                         ).hasAuthority("ROLE_ENABLE_DISABLE")
 
+                        // Agencies CRUD APIs
+                        .requestMatchers(HttpMethod.GET, "/api/v1/agencies/**")
+                        .hasAuthority("AGENCY_READ")
+
+                        .requestMatchers(HttpMethod.POST, "/api/v1/agencies/**")
+                        .hasAuthority("AGENCY_CREATE")
+
+
                         // Remaining endpoints require ACCESS
                         .anyRequest().hasAuthority("ACCESS")
                 )
 
+                .addFilterAfter(
+                        csrfCookieFilter,
+                        BasicAuthenticationFilter.class
+                )
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class

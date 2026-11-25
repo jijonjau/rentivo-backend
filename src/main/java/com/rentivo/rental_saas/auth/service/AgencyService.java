@@ -1,0 +1,190 @@
+package com.rentivo.rental_saas.auth.service;
+
+import com.rentivo.rental_saas.auth.common.AccountType;
+import com.rentivo.rental_saas.auth.common.EntityStatus;
+import com.rentivo.rental_saas.auth.common.OnboardingStatus;
+import com.rentivo.rental_saas.auth.dto.CreateAgencyRequest;
+import com.rentivo.rental_saas.auth.dto.FetchAgencyResponse;
+import com.rentivo.rental_saas.auth.entity.Agencies;
+import com.rentivo.rental_saas.auth.entity.Users;
+import com.rentivo.rental_saas.auth.repository.AgencyRepo;
+import com.rentivo.rental_saas.auth.repository.UserRepo;
+import com.rentivo.rental_saas.common.exception.ResourceAlreadyExistsException;
+import com.rentivo.rental_saas.common.exception.ResourceNotFoundException;
+import com.rentivo.rental_saas.common.response.PageResponseDto;
+import com.rentivo.rental_saas.common.response.PageResponseMapper;
+import lombok.AllArgsConstructor;
+import org.jspecify.annotations.NonNull;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.net.MalformedURLException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+@Service
+@AllArgsConstructor
+public class AgencyService {
+
+    private final AgencyRepo agencyRepo;
+    private final UserRepo userRepo;
+    private final FileStorageService fileStorageService;
+
+    // Helper methods
+    private static @NonNull Agencies getAgencies(CreateAgencyRequest request) {
+        Agencies agency = new Agencies();
+
+        agency.setAgencyName(request.getAgencyName());
+        agency.setRegistrationNumber(request.getRegistrationNumber());
+        agency.setEmail(request.getEmail());
+        agency.setPhoneNumber(request.getPhoneNumber());
+        agency.setPhysicalAddress(request.getPhysicalAddress());
+        agency.setStatus(EntityStatus.ACTIVE);
+        return agency;
+    }
+
+    @Transactional
+    public void createAgency(
+            CreateAgencyRequest request,
+            MultipartFile registrationDocument,
+            Users user
+    ) {
+
+        if (user.getAccountType() != AccountType.AGENCY ||
+                user.getOnboardingStatus() != OnboardingStatus.IN_PROGRESS) {
+            throw new AccessDeniedException("You cannot create an agency");
+        }
+
+        if (user.getAgencyId() != null) {
+            throw new ResourceAlreadyExistsException(
+                    "User is already associated with an agency"
+            );
+        }
+
+        if (agencyRepo.existsByRegistrationNumber(
+                request.getRegistrationNumber())) {
+            throw new ResourceAlreadyExistsException(
+                    "Agency registration number already exists"
+            );
+        }
+
+        if (agencyRepo.existsByEmail(request.getEmail())) {
+            throw new ResourceAlreadyExistsException(
+                    "Agency email already exists"
+            );
+        }
+
+        String documentPath = fileStorageService.storeAgencyDocument(
+                registrationDocument
+        );
+
+        try {
+            Agencies agency = getAgencies(request);
+            agency.setCreatedBy(user);
+            agency.setRegistrationDocumentUrl(documentPath);
+
+            agencyRepo.saveAndFlush(agency);
+
+            user.setAgencyId(agency.getId());
+            userRepo.save(user);
+
+        } catch (RuntimeException exception) {
+            fileStorageService.deleteFile(documentPath);
+            throw exception;
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public FetchAgencyResponse fetchMyAgency(Users user) {
+
+        if (user.getAccountType() != AccountType.AGENCY) {
+            throw new AccessDeniedException("Only agency accounts can access this resource");
+        }
+
+        if (user.getAgencyId() == null) {
+            throw new ResourceNotFoundException("No agency profile found");
+        }
+
+        Agencies agency = agencyRepo.findById(user.getAgencyId())
+                .orElseThrow(() -> new ResourceNotFoundException("Agency not found"));
+
+        return mapToFetchAgencyResponse(agency);
+    }
+
+    @Transactional(readOnly = true)
+    public Resource fetchRegistrationDocument(Users user) {
+
+        if (user.getAccountType() != AccountType.AGENCY ||
+                user.getAgencyId() == null) {
+            throw new AccessDeniedException("You cannot access this document");
+        }
+
+        Agencies agency = agencyRepo.findById(user.getAgencyId())
+                .orElseThrow(() -> new ResourceNotFoundException("Agency not found"));
+
+        String documentPath = agency.getRegistrationDocumentUrl();
+
+        if (documentPath == null || documentPath.isBlank()) {
+            throw new ResourceNotFoundException("Registration document not found");
+        }
+
+        try {
+            Path path = Paths.get(documentPath).toAbsolutePath().normalize();
+
+            if (!Files.exists(path) || !Files.isRegularFile(path)) {
+                throw new ResourceNotFoundException("Registration document not found");
+            }
+
+            return new UrlResource(path.toUri());
+
+        } catch (MalformedURLException exception) {
+            throw new RuntimeException("Could not retrieve registration document", exception);
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponseDto<FetchAgencyResponse> fetchAllAgencies(
+            EntityStatus status,
+            String search,
+            Pageable pageable,
+            Users user) {
+
+        if (!"SUPER_ADMIN".equals(user.getRole().getRoleName())) {
+            throw new AccessDeniedException("Only super admins can fetch agencies");
+        }
+
+        Page<Agencies> agencies = agencyRepo.findAllWithFilters(
+                status, search, pageable);
+
+        Page<FetchAgencyResponse> mapped = agencies.map(this::mapToFetchAgencyResponse);
+
+        return PageResponseMapper.toPageResponse(mapped);
+    }
+
+    private FetchAgencyResponse mapToFetchAgencyResponse(Agencies agency) {
+
+        return FetchAgencyResponse.builder()
+                .id(agency.getId())
+                .agencyName(agency.getAgencyName())
+                .registrationNumber(agency.getRegistrationNumber())
+                .email(agency.getEmail())
+                .phoneNumber(agency.getPhoneNumber())
+                .physicalAddress(agency.getPhysicalAddress())
+                .status(agency.getStatus().name())
+                .hasRegistrationDocument(
+                        agency.getRegistrationDocumentUrl() != null
+                                && !agency.getRegistrationDocumentUrl().isBlank()
+                )
+                .createdAt(agency.getCreatedAt())
+                .createdBy(agency.getCreatedBy().getId())
+                .updatedAt(agency.getUpdatedAt())
+                .build();
+    }
+}

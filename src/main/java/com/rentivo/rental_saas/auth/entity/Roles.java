@@ -1,6 +1,7 @@
 package com.rentivo.rental_saas.auth.entity;
 
 import com.rentivo.rental_saas.auth.common.AccountType;
+import com.rentivo.rental_saas.auth.common.EntityStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -34,8 +35,9 @@ public class Roles {
     @Builder.Default
     private Set<Permissions> permissions = new HashSet<>();
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private boolean enabled;
+    private EntityStatus status;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20, updatable = false)
