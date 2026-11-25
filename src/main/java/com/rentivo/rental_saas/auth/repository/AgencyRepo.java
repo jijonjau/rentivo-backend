@@ -1,6 +1,5 @@
 package com.rentivo.rental_saas.auth.repository;
 
-import com.rentivo.rental_saas.auth.common.AgencyVerificationStatus;
 import com.rentivo.rental_saas.auth.common.EntityStatus;
 import com.rentivo.rental_saas.auth.entity.Agencies;
 import org.springframework.data.domain.Page;
@@ -11,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface AgencyRepo extends JpaRepository<Agencies, Long> {
@@ -28,8 +28,7 @@ public interface AgencyRepo extends JpaRepository<Agencies, Long> {
 
     @Query("""
                 SELECT a FROM Agencies a
-                WHERE (:verificationStatus IS NULL OR a.verificationStatus = :verificationStatus)
-                AND (:status IS NULL OR a.status = :status)
+                WHERE (:status IS NULL OR a.status = :status)
                 AND (
                     CAST(:search AS string) IS NULL OR
                     LOWER(a.agencyName) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR
@@ -38,8 +37,11 @@ public interface AgencyRepo extends JpaRepository<Agencies, Long> {
                 )
             """)
     Page<Agencies> findAllWithFilters(
-            @Param("verificationStatus") AgencyVerificationStatus verificationStatus,
-            @Param("status")EntityStatus status,
+            @Param("status") EntityStatus status,
             @Param("search") String search,
             Pageable pageable);
+
+    boolean existsByCreatedBy_Id(Long userId);
+
+    Optional<Agencies> findByCreatedBy_Id(Long userId);
 }

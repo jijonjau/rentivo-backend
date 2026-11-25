@@ -27,4 +27,15 @@ public interface UserRepo extends JpaRepository<Users, Long> {
     Optional<Users> findByIdWithRoleAndPermissions(
             @Param("userId") Long userId
     );
+
+    @Query("""
+            SELECT DISTINCT u
+            FROM Users u
+            JOIN FETCH u.role r
+            LEFT JOIN FETCH r.permissions
+            WHERE u.email = :email
+            """)
+    Optional<Users> findByEmailWithRoleAndPermissions(
+            @Param("email") String email
+    );
 }

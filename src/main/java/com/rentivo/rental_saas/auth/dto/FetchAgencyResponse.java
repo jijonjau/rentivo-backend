@@ -1,18 +1,25 @@
 package com.rentivo.rental_saas.auth.dto;
 
-import com.rentivo.rental_saas.auth.common.AgencyVerificationStatus;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
-public record FetchAgencyResponse(
-        Long id,
-        String agencyName,
-        String registrationNumber,
-        String email,
-        String phoneNumber,
-        String physicalAddress,
-        AgencyVerificationStatus verificationStatus,
-        String status,
-        boolean hasRegistrationDocument,
-        LocalDateTime createdAt
-) {}
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class FetchAgencyResponse {
+
+    private Long id;
+    private String agencyName;
+    private String registrationNumber;
+    private String email;
+    private String phoneNumber;
+    private String physicalAddress;
+    private String status;
+    private boolean hasRegistrationDocument;
+    private LocalDateTime createdAt;
+    private Long createdBy;
+    private LocalDateTime updatedAt;
+}

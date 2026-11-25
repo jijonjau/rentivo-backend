@@ -1,9 +1,10 @@
 package com.rentivo.rental_saas.auth.service;
 
-import com.rentivo.rental_saas.auth.common.*;
+import com.rentivo.rental_saas.auth.common.AccountType;
+import com.rentivo.rental_saas.auth.common.EntityStatus;
+import com.rentivo.rental_saas.auth.common.OnboardingStatus;
 import com.rentivo.rental_saas.auth.dto.CreateAgencyRequest;
 import com.rentivo.rental_saas.auth.dto.FetchAgencyResponse;
-import com.rentivo.rental_saas.auth.dto.ReviewApprovalRequest;
 import com.rentivo.rental_saas.auth.entity.Agencies;
 import com.rentivo.rental_saas.auth.entity.Users;
 import com.rentivo.rental_saas.auth.repository.AgencyRepo;
@@ -45,8 +46,7 @@ public class AgencyService {
         agency.setEmail(request.getEmail());
         agency.setPhoneNumber(request.getPhoneNumber());
         agency.setPhysicalAddress(request.getPhysicalAddress());
-        agency.setVerificationStatus(AgencyVerificationStatus.PENDING);
-        agency.setStatus(EntityStatus.DISABLED);
+        agency.setStatus(EntityStatus.ACTIVE);
         return agency;
     }
 
@@ -87,7 +87,7 @@ public class AgencyService {
 
         try {
             Agencies agency = getAgencies(request);
-
+            agency.setCreatedBy(user);
             agency.setRegistrationDocumentUrl(documentPath);
 
             agencyRepo.saveAndFlush(agency);
@@ -115,18 +115,7 @@ public class AgencyService {
         Agencies agency = agencyRepo.findById(user.getAgencyId())
                 .orElseThrow(() -> new ResourceNotFoundException("Agency not found"));
 
-        return new FetchAgencyResponse(
-                agency.getId(),
-                agency.getAgencyName(),
-                agency.getRegistrationNumber(),
-                agency.getEmail(),
-                agency.getPhoneNumber(),
-                agency.getPhysicalAddress(),
-                agency.getVerificationStatus(),
-                agency.getStatus().name(),
-                agency.getRegistrationDocumentUrl() != null,
-                agency.getCreatedAt()
-        );
+        return mapToFetchAgencyResponse(agency);
     }
 
     @Transactional(readOnly = true)
@@ -162,7 +151,6 @@ public class AgencyService {
 
     @Transactional(readOnly = true)
     public PageResponseDto<FetchAgencyResponse> fetchAllAgencies(
-            AgencyVerificationStatus verificationStatus,
             EntityStatus status,
             String search,
             Pageable pageable,
@@ -173,62 +161,30 @@ public class AgencyService {
         }
 
         Page<Agencies> agencies = agencyRepo.findAllWithFilters(
-                verificationStatus, status, search, pageable);
+                status, search, pageable);
 
         Page<FetchAgencyResponse> mapped = agencies.map(this::mapToFetchAgencyResponse);
 
         return PageResponseMapper.toPageResponse(mapped);
     }
 
-    @Transactional
-    public void reviewAgency(
-            Long agencyId,
-            ReviewApprovalRequest request,
-            Users user) {
-
-        if (!"SUPER_ADMIN".equals(user.getRole().getRoleName())) {
-            throw new AccessDeniedException("Only super admins can review agencies");
-        }
-
-        Agencies agency = agencyRepo.findById(agencyId)
-                .orElseThrow(() -> new ResourceNotFoundException("Agency not found"));
-
-        if (agency.getVerificationStatus() != AgencyVerificationStatus.PENDING) {
-            throw new IllegalStateException("Agency is not awaiting verification");
-        }
-
-        ReviewStatus reviewStatus = ReviewStatus.fromCode(request.getStatus());
-
-        agency.setReviewDescription(request.getDescription());
-
-        if (reviewStatus == ReviewStatus.APPROVED) {
-            agency.setVerificationStatus(AgencyVerificationStatus.VERIFIED);
-            agency.setStatus(EntityStatus.ACTIVE);
-        } else {
-            if (request.getDescription() == null || request.getDescription().isBlank()) {
-                throw new IllegalArgumentException("A rejection reason is required");
-            }
-
-            agency.setVerificationStatus(AgencyVerificationStatus.REJECTED);
-            agency.setStatus(EntityStatus.DISABLED);
-        }
-
-        agencyRepo.save(agency);
-    }
-
     private FetchAgencyResponse mapToFetchAgencyResponse(Agencies agency) {
-        return new FetchAgencyResponse(
-                agency.getId(),
-                agency.getAgencyName(),
-                agency.getRegistrationNumber(),
-                agency.getEmail(),
-                agency.getPhoneNumber(),
-                agency.getPhysicalAddress(),
-                agency.getVerificationStatus(),
-                agency.getStatus().name(),
-                agency.getRegistrationDocumentUrl() != null
-                        && !agency.getRegistrationDocumentUrl().isBlank(),
-                agency.getCreatedAt()
-        );
+
+        return FetchAgencyResponse.builder()
+                .id(agency.getId())
+                .agencyName(agency.getAgencyName())
+                .registrationNumber(agency.getRegistrationNumber())
+                .email(agency.getEmail())
+                .phoneNumber(agency.getPhoneNumber())
+                .physicalAddress(agency.getPhysicalAddress())
+                .status(agency.getStatus().name())
+                .hasRegistrationDocument(
+                        agency.getRegistrationDocumentUrl() != null
+                                && !agency.getRegistrationDocumentUrl().isBlank()
+                )
+                .createdAt(agency.getCreatedAt())
+                .createdBy(agency.getCreatedBy().getId())
+                .updatedAt(agency.getUpdatedAt())
+                .build();
     }
 }

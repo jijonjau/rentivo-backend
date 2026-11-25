@@ -9,6 +9,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -17,21 +18,35 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
-    private final UserRepo userRepository;
+    private final UserRepo userRepo;
 
-    private static @NonNull UsernamePasswordAuthenticationToken getUsernamePasswordAuthenticationToken(Users user) {
-        List<SimpleGrantedAuthority> authorities = List.of(
-                new SimpleGrantedAuthority("ACCESS"),
-                new SimpleGrantedAuthority(
-                        "ROLE_" + user.getRole().getRoleName()
+    private static @NonNull UsernamePasswordAuthenticationToken
+    getUsernamePasswordAuthenticationToken(Users user) {
+
+        List<SimpleGrantedAuthority> authorities = new ArrayList<>(
+                List.of(
+                        new SimpleGrantedAuthority("ACCESS"),
+                        new SimpleGrantedAuthority(
+                                "ROLE_" + user.getRole().getRoleName()
+                        )
+                )
+        );
+
+        user.getRole().getPermissions().forEach(permission ->
+                authorities.add(
+                        new SimpleGrantedAuthority(
+                                permission.getPermissionName()
+                        )
                 )
         );
 
@@ -55,7 +70,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 uri.equals("/api/v1/auth/login") ||
                 uri.equals("/api/v1/auth/register") ||
                 uri.equals("/api/v1/auth/forgot-password") ||
-                uri.equals("/api/v1/auth/logout") ||
                 uri.equals("/api/v1/properties/public") ||
                 uri.startsWith("/api/v1/properties/public/")) {
 
@@ -123,7 +137,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 Long userId = jwtService.extractOtpUserId(token);
 
-                if (!userRepository.existsById(userId)) {
+                if (!userRepo.existsById(userId)) {
                     response.sendError(
                             HttpServletResponse.SC_UNAUTHORIZED,
                             "User not found"
@@ -144,7 +158,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 String email = jwtService.extractEmail(token);
 
-                Users user = userRepository.findByEmailWithRole(email)
+                Users user = userRepo.findByEmailWithRoleAndPermissions(email)
                         .orElse(null);
 
                 if (user == null || user.getStatus() != EntityStatus.ACTIVE || !user.isVerified()) {
@@ -183,7 +197,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 Long userId = jwtService.extractPasswordResetUserId(token);
 
-                if (!userRepository.existsById(userId)) {
+                if (!userRepo.existsById(userId)) {
                     response.sendError(
                             HttpServletResponse.SC_UNAUTHORIZED,
                             "User not found"
@@ -217,6 +231,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     HttpServletResponse.SC_UNAUTHORIZED,
                     "Invalid or expired token"
             );
+
+            log.error("JWT authentication failed", exception);
             return;
         }
 

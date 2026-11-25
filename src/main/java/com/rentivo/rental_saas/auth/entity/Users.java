@@ -54,6 +54,9 @@ public class Users {
     @Column(nullable = false)
     private boolean verified;
 
+    @Column(nullable = false)
+    private boolean acceptTerms;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;

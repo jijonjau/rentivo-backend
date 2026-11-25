@@ -77,7 +77,7 @@ public class AuthService {
         String roleName = switch (accountType) {
             case TENANT -> "TENANT";
             case LANDLORD -> "LANDLORD";
-            case AGENCY -> "AGENCY_USER";
+            case AGENCY -> "AGENCY_ADMIN";
             case PLATFORM -> throw new IllegalArgumentException(
                     "Invalid account type"
             );
@@ -102,6 +102,7 @@ public class AuthService {
         user.setRole(role);
         user.setPasswordHash(passwordEncoder.encode(createUserRequest.getPassword()));
         user.setVerified(false);
+        user.setAcceptTerms(createUserRequest.isAcceptTerms());
         user.setStatus(EntityStatus.DISABLED);
         user.setOnboardingStatus(OnboardingStatus.PENDING_VERIFICATION);
         Users savedUser = userRepository.save(user);

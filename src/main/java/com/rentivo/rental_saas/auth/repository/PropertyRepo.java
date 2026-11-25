@@ -10,22 +10,21 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface PropertyRepo extends JpaRepository<Properties, Long> {
 
     @Query("""
-    SELECT p FROM Properties p
-    WHERE p.listingStatus = :listingStatus
-    AND p.enabled = true
-    AND (:propertyType IS NULL OR p.propertyType = :propertyType)
-    AND (
-        CAST(:county AS string) IS NULL
-        OR LOWER(p.county) = LOWER(CAST(:county AS string))
-    )
-""")
+                SELECT p FROM Properties p
+                WHERE p.listingStatus = :listingStatus
+                AND p.enabled = true
+                AND (:propertyType IS NULL OR p.propertyType = :propertyType)
+                AND (
+                    CAST(:county AS string) IS NULL
+                    OR LOWER(p.county) = LOWER(CAST(:county AS string))
+                )
+            """)
     Page<Properties> findPublicProperties(
             ListingStatus listingStatus,
             PropertyType propertyType,
@@ -39,14 +38,14 @@ public interface PropertyRepo extends JpaRepository<Properties, Long> {
     );
 
     @Query("""
-    SELECT p FROM Properties p
-    WHERE (:listingStatus IS NULL OR p.listingStatus = :listingStatus)
-    AND (:propertyType IS NULL OR p.propertyType = :propertyType)
-    AND (
-        CAST(:county AS string) IS NULL
-        OR LOWER(p.county) = LOWER(CAST(:county AS string))
-    )
-""")
+                SELECT p FROM Properties p
+                WHERE (:listingStatus IS NULL OR p.listingStatus = :listingStatus)
+                AND (:propertyType IS NULL OR p.propertyType = :propertyType)
+                AND (
+                    CAST(:county AS string) IS NULL
+                    OR LOWER(p.county) = LOWER(CAST(:county AS string))
+                )
+            """)
     Page<Properties> findAllWithFilters(
             @Param("listingStatus") ListingStatus listingStatus,
             @Param("propertyType") PropertyType propertyType,
@@ -57,4 +56,8 @@ public interface PropertyRepo extends JpaRepository<Properties, Long> {
     Page<Properties> findByAgencyId(Long agencyId, Pageable pageable);
 
     Page<Properties> findByLandlordId(Long landlordId, Pageable pageable);
+
+    boolean existsByLandlordId(Long landlordId);
+
+    boolean existsByAgency_Id(Long agencyId);
 }

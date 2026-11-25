@@ -1,10 +1,8 @@
 package com.rentivo.rental_saas.auth.controller;
 
-import com.rentivo.rental_saas.auth.common.AgencyVerificationStatus;
 import com.rentivo.rental_saas.auth.common.EntityStatus;
 import com.rentivo.rental_saas.auth.dto.CreateAgencyRequest;
 import com.rentivo.rental_saas.auth.dto.FetchAgencyResponse;
-import com.rentivo.rental_saas.auth.dto.ReviewApprovalRequest;
 import com.rentivo.rental_saas.auth.entity.Users;
 import com.rentivo.rental_saas.auth.service.AgencyService;
 import com.rentivo.rental_saas.common.response.ApiResponse;
@@ -77,7 +75,6 @@ public class AgencyController {
 
     @GetMapping("/platform")
     public ResponseEntity<?> fetchAllAgencies(
-            @RequestParam(required = false) AgencyVerificationStatus verificationStatus,
             @RequestParam(required = false) Integer status,
             @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int pageNumber,
@@ -97,23 +94,8 @@ public class AgencyController {
                         200,
                         "Agencies fetched successfully",
                         agencyService.fetchAllAgencies(
-                                verificationStatus, entityStatus, search, pageRequest, user)
+                                entityStatus, search, pageRequest, user)
                 )
-        );
-    }
-
-    @PatchMapping("/{agencyId}/review")
-    public ResponseEntity<?> reviewAgency(
-            @PathVariable Long agencyId,
-            @Valid @RequestBody ReviewApprovalRequest request,
-            Authentication authentication) {
-
-        Users user = (Users) authentication.getPrincipal();
-
-        agencyService.reviewAgency(agencyId, request, user);
-
-        return ResponseEntity.ok(
-                ApiResponse.success(200, "Agency reviewed successfully", null)
         );
     }
 }

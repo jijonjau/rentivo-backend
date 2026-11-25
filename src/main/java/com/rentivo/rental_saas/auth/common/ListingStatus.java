@@ -6,14 +6,10 @@ import java.util.Arrays;
 
 @Getter
 public enum ListingStatus {
-
-    DRAFT(1),
-    PENDING_APPROVAL(2),
-    PUBLISHED(3),
-    REJECTED(4),
-    UNPUBLISHED(5),
-    RENTED(6),
-    SOLD(7);
+    PUBLISHED(1),
+    UNPUBLISHED(2),
+    RENTED(3),
+    SOLD(4);
 
     private final long code;
 

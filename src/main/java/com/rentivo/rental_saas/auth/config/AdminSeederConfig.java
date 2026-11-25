@@ -94,6 +94,7 @@ public class AdminSeederConfig {
             admin.setAccountType(AccountType.PLATFORM);
             admin.setRole(superAdminRole);
             admin.setVerified(true);
+            admin.setAcceptTerms(true);
             admin.setOnboardingStatus(OnboardingStatus.COMPLETED);
             admin.setStatus(EntityStatus.ACTIVE);
 

@@ -1,11 +1,12 @@
 package com.rentivo.rental_saas.auth.service;
 
-import com.rentivo.rental_saas.auth.common.*;
+import com.rentivo.rental_saas.auth.common.AccountType;
+import com.rentivo.rental_saas.auth.common.ListingStatus;
+import com.rentivo.rental_saas.auth.common.PropertyType;
 import com.rentivo.rental_saas.auth.config.FileStorageProperties;
 import com.rentivo.rental_saas.auth.dto.CreatePropertyRequest;
 import com.rentivo.rental_saas.auth.dto.FetchPropertyResponse;
 import com.rentivo.rental_saas.auth.dto.PropertyImageResponse;
-import com.rentivo.rental_saas.auth.dto.ReviewApprovalRequest;
 import com.rentivo.rental_saas.auth.entity.Agencies;
 import com.rentivo.rental_saas.auth.entity.Properties;
 import com.rentivo.rental_saas.auth.entity.PropertyImages;
@@ -13,7 +14,6 @@ import com.rentivo.rental_saas.auth.entity.Users;
 import com.rentivo.rental_saas.auth.repository.AgencyRepo;
 import com.rentivo.rental_saas.auth.repository.PropertyImagesRepo;
 import com.rentivo.rental_saas.auth.repository.PropertyRepo;
-import com.rentivo.rental_saas.auth.repository.UserRepo;
 import com.rentivo.rental_saas.common.exception.ResourceNotFoundException;
 import com.rentivo.rental_saas.common.response.PageResponseDto;
 import com.rentivo.rental_saas.common.response.PageResponseMapper;
@@ -47,7 +47,6 @@ public class PropertyService {
     private final PropertyImagesRepo propertyImagesRepo;
     private final FileStorageService fileStorageService;
     private final FileStorageProperties properties;
-    private final UserRepo userRepo;
 
     // CREATE PROPERTY
 
@@ -69,7 +68,7 @@ public class PropertyService {
         property.setDescription(request.getDescription());
         property.setTotalUnits(request.getTotalUnits());
         property.setOccupiedUnits(0);
-        property.setListingStatus(ListingStatus.DRAFT);
+        property.setListingStatus(ListingStatus.PUBLISHED);
 
         assignPropertyOwnership(property, user);
 
@@ -174,34 +173,6 @@ public class PropertyService {
         return mapToFetchPropertyResponse(property, images);
     }
 
-    // SUBMIT PROPERTY FOR APPROVAL
-
-    @Transactional
-    public void submitPropertyForApproval(Long propertyId, Users user) {
-
-        Properties property = getProperty(propertyId);
-
-        validatePropertyOwnership(property, user);
-
-        if (property.getListingStatus() != ListingStatus.DRAFT
-                && property.getListingStatus() != ListingStatus.REJECTED) {
-
-            throw new IllegalStateException(
-                    "Only draft or rejected properties can be submitted");
-        }
-
-        long imageCount = propertyImagesRepo.countByPropertyId(propertyId);
-
-        if (imageCount < 2) {
-            throw new IllegalArgumentException(
-                    "At least 2 property images are required");
-        }
-
-        property.setListingStatus(ListingStatus.PENDING_APPROVAL);
-
-        propertyRepo.save(property);
-    }
-
     // ADMIN - FETCH ALL PROPERTIES
 
     @Transactional(readOnly = true)
@@ -233,51 +204,6 @@ public class PropertyService {
                 );
 
         return PageResponseMapper.toPageResponse(mappedProperties);
-    }
-
-    // ADMIN - APPROVE OR REJECT PROPERTY
-
-    @Transactional
-    public void reviewProperty(
-            Long propertyId,
-            ReviewApprovalRequest request,
-            Users user) {
-
-        validateSuperAdmin(user);
-
-        Properties property = getProperty(propertyId);
-
-        if (property.getListingStatus() != ListingStatus.PENDING_APPROVAL) {
-            throw new IllegalStateException(
-                    "Property is not awaiting approval");
-        }
-
-        ReviewStatus reviewStatus = ReviewStatus.fromCode(request.getStatus());
-
-        if (reviewStatus == ReviewStatus.REJECTED &&
-                (request.getDescription() == null ||
-                        request.getDescription().isBlank())) {
-
-            throw new IllegalArgumentException(
-                    "A rejection reason is required");
-        }
-
-        property.setReviewDescription(request.getDescription());
-
-        if (reviewStatus == ReviewStatus.APPROVED) {
-
-            validatePropertyOwnerAccount(property);
-
-            property.setListingStatus(ListingStatus.PUBLISHED);
-            property.setEnabled(true);
-
-        } else {
-
-            property.setListingStatus(ListingStatus.REJECTED);
-            property.setEnabled(false);
-        }
-
-        propertyRepo.save(property);
     }
 
     // OWNER - FETCH MY PROPERTIES
@@ -424,38 +350,6 @@ public class PropertyService {
         if (!"SUPER_ADMIN".equals(user.getRole().getRoleName())) {
             throw new AccessDeniedException(
                     "Only super admins can perform this action");
-        }
-    }
-
-    private void validatePropertyOwnerAccount(Properties property) {
-
-        if (property.getAgency() != null) {
-
-            Agencies agency = property.getAgency();
-
-            if (agency.getStatus() != EntityStatus.ACTIVE
-                    || agency.getVerificationStatus()
-                    != AgencyVerificationStatus.VERIFIED) {
-
-                throw new IllegalStateException(
-                        "The agency must be active and verified before this property can be approved");
-            }
-
-        } else {
-
-            if (property.getLandlordId() == null) {
-                throw new IllegalStateException(
-                        "Property does not have a valid owner");
-            }
-
-            Users landlord = userRepo.findById(property.getLandlordId())
-                    .orElseThrow(() ->
-                            new ResourceNotFoundException("Landlord not found"));
-
-            if (landlord.getStatus() != EntityStatus.ACTIVE) {
-                throw new IllegalStateException(
-                        "The landlord account must be active before this property can be approved");
-            }
         }
     }
 

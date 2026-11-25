@@ -4,7 +4,6 @@ import com.rentivo.rental_saas.auth.common.ListingStatus;
 import com.rentivo.rental_saas.auth.common.PropertyType;
 import com.rentivo.rental_saas.auth.dto.CreatePropertyRequest;
 import com.rentivo.rental_saas.auth.dto.FetchPropertyResponse;
-import com.rentivo.rental_saas.auth.dto.ReviewApprovalRequest;
 import com.rentivo.rental_saas.auth.entity.Users;
 import com.rentivo.rental_saas.auth.service.FileStorageService;
 import com.rentivo.rental_saas.auth.service.PropertyService;
@@ -95,22 +94,6 @@ public class PropertyController {
         ));
     }
 
-    @PostMapping("/{propertyId}/submit")
-    public ResponseEntity<?> submitPropertyForApproval(
-            @PathVariable Long propertyId,
-            Authentication authentication) {
-
-        Users user = (Users) authentication.getPrincipal();
-
-        propertyService.submitPropertyForApproval(propertyId, user);
-
-        return ResponseEntity.ok(ApiResponse.success(
-                200,
-                "Property submitted for approval successfully",
-                null
-        ));
-    }
-
     @GetMapping("/platform")
     public ResponseEntity<?> fetchAllProperties(
             @RequestParam(required = false) Integer listingStatus,
@@ -140,25 +123,6 @@ public class PropertyController {
                         status, type, county, pageRequest, user
                 )
         ));
-    }
-
-    @PatchMapping("/{propertyId}/review")
-    public ResponseEntity<?> reviewProperty(
-            @PathVariable Long propertyId,
-            @Valid @RequestBody ReviewApprovalRequest request,
-            Authentication authentication) {
-
-        Users user = (Users) authentication.getPrincipal();
-
-        propertyService.reviewProperty(propertyId, request, user);
-
-        return ResponseEntity.ok(
-                ApiResponse.success(
-                        200,
-                        "Property reviewed successfully",
-                        null
-                )
-        );
     }
 
     @GetMapping("/my-properties")

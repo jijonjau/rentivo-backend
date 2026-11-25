@@ -1,6 +1,5 @@
 package com.rentivo.rental_saas.auth.entity;
 
-import com.rentivo.rental_saas.auth.common.AgencyVerificationStatus;
 import com.rentivo.rental_saas.auth.common.EntityStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -40,14 +39,11 @@ public class Agencies {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private AgencyVerificationStatus verificationStatus;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private EntityStatus status;
 
-    @Column(columnDefinition = "TEXT")
-    private String reviewDescription;
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "created_by_user_id", nullable = false, unique = true)
+    private Users createdBy;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
